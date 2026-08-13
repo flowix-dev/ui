@@ -21,7 +21,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { WorkflowNode, WorkflowEdge } from "@/lib/types";
-import { nodeDefinitionsApi } from "@/lib/api";
+import api, { nodeDefinitionsApi } from "@/lib/api";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { fetchExecution } from "@/store/executionSlice";
 import ExecutionSidebar from "./ExecutionSidebar";
@@ -42,6 +42,8 @@ interface WorkflowEditorProps {
 type PortDef = {
   key: string;
   type: string;
+  input?: string;
+  options?: string[];
   required?: boolean;
   defaultValue?: unknown;
   description?: string;
@@ -57,9 +59,201 @@ type NodeDef = {
   config: Record<string, unknown>;
 };
 
+const TYPE_LABELS: Record<string, string> = {
+  string: "text",
+  number: "number",
+  boolean: "boolean",
+  object: "object",
+  array: "array",
+  json: "json",
+  image: "image",
+  file: "file",
+  audio: "audio",
+  credentials: "credentials",
+  any: "any",
+};
+
+function TypeBadge({ type }: { type: string }) {
+  return (
+    <span className="rounded bg-surface-strong px-1 font-mono text-[9px] uppercase tracking-wide text-muted">
+      {TYPE_LABELS[type] ?? type}
+    </span>
+  );
+}
+
+function isTypeCompatible(
+  sourceType: string | undefined,
+  targetType: string | undefined,
+): boolean {
+  if (!sourceType || !targetType) {
+    return false;
+  }
+  if (sourceType === "any" || targetType === "any") {
+    return true;
+  }
+  if (sourceType === targetType) {
+    return true;
+  }
+  if (sourceType === "number" && targetType === "string") {
+    return true;
+  }
+  if (
+    sourceType === "json" &&
+    (targetType === "object" || targetType === "array")
+  ) {
+    return true;
+  }
+  if (
+    (sourceType === "object" || sourceType === "array") &&
+    targetType === "json"
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function CredentialsButton({ provider }: { provider: string }) {
+  const [connected, setConnected] = useState(false);
+  const [email, setEmail] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const refresh = useCallback(() => {
+    api
+      .get(`/credentials/${provider}`)
+      .then(({ data }) => {
+        setConnected(!!data.connected);
+        setEmail(data.email ?? null);
+      })
+      .catch(() => setConnected(false));
+  }, [provider]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const handleClick = async () => {
+    setBusy(true);
+    try {
+      const { data } = await api.get(`/credentials/${provider}/auth`);
+      const popup = window.open(data.url, "_blank", "width=620,height=720");
+      if (!popup) {
+        alert("Permití las ventanas emergentes para conectar.");
+        return;
+      }
+      const timer = setInterval(async () => {
+        try {
+          const { data: status } = await api.get(`/credentials/${provider}`);
+          if (status.connected) {
+            clearInterval(timer);
+            setConnected(true);
+            setEmail(status.email ?? null);
+            setBusy(false);
+          }
+        } catch {
+          /* keep polling */
+        }
+      }, 2000);
+      const closeCheck = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(timer);
+          clearInterval(closeCheck);
+          setBusy(false);
+          refresh();
+        }
+      }, 1000);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "No se pudo conectar");
+      setBusy(false);
+    }
+  };
+
+  if (connected) {
+    return (
+      <span
+        className="block truncate rounded-md border border-hairline-strong bg-canvas-soft px-2 py-1 text-xs font-medium text-ink"
+        title={email ?? "Conectado"}
+      >
+        ✓ {email ?? "Conectado"}
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={busy}
+      className="w-full cursor-pointer rounded-md border border-dashed border-hairline-strong bg-canvas-soft px-2 py-1 text-xs font-medium text-body transition hover:border-primary/50 hover:bg-surface-strong"
+    >
+      {busy ? "Conectando…" : `Conectar ${provider}`}
+    </button>
+  );
+}
+
+function renderWidget(
+  port: PortDef,
+  value: unknown,
+  onChange: (value: unknown) => void,
+) {
+  const stringValue = (value as string) ?? "";
+  if (port.input === "textarea") {
+    return (
+      <textarea
+        rows={2}
+        value={stringValue}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full resize-y rounded border border-hairline px-1 py-0.5 text-xs text-ink"
+      />
+    );
+  }
+  if (port.input === "select") {
+    return (
+      <select
+        value={stringValue}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded border border-hairline bg-surface-card px-1 py-0.5 text-xs text-ink"
+      >
+        {(port.options ?? []).map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  if (port.input === "none") {
+    return <span className="text-[10px] text-muted">—</span>;
+  }
+  if (
+    port.input === "number" ||
+    (port.input == null && port.type === "number")
+  ) {
+    return (
+      <input
+        type="number"
+        value={(value as string | number) ?? ""}
+        onChange={(e) => {
+          const val = e.target.value;
+          onChange(val === "" ? "" : Number(val));
+        }}
+        className="w-full rounded border border-hairline px-1 py-0.5 text-xs text-ink"
+      />
+    );
+  }
+  return (
+    <input
+      type="text"
+      value={stringValue}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full rounded border border-hairline px-1 py-0.5 text-xs text-ink"
+    />
+  );
+}
+
 function WorkflowNodeComponent({ data, selected }: NodeProps) {
   const label = data.label as string;
   const nodeDef = data.nodeDef as NodeDef | undefined;
+  const fnKey = data.fnKey as string;
   const inputValues = (data.inputValues as Record<string, unknown>) || {};
   const connectedInputs =
     (data.connectedInputs as Record<string, boolean>) || {};
@@ -73,8 +267,15 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
 
   const inputPorts = useMemo(() => nodeDef?.inputs || [], [nodeDef]);
   const outputPorts = useMemo(() => nodeDef?.outputs || [], [nodeDef]);
+  const provider =
+    fnKey === "outlook.send"
+      ? "outlook"
+      : fnKey === "gmail.send"
+        ? "gmail"
+        : null;
 
-  const editableTypes = new Set(["number", "string", "boolean"]);
+  const hasHandle = (port: PortDef) =>
+    port.input !== "file" && port.input !== "credentials";
 
   return (
     <div
@@ -87,10 +288,10 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
       {inputPorts.length > 0 && (
         <div className="mb-2 space-y-1">
           {inputPorts.map((port) => {
-            if (port.type === "file") {
+            if (port.input === "file") {
               return (
                 <div key={port.key} className="mb-1">
-                  <label className="flex flex-col items-center justify-center gap-1 rounded-md border border-dashed border-hairline-strong bg-canvas-soft px-3 py-4 text-center transition hover:border-primary/50 hover:bg-surface-strong cursor-pointer">
+                  <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-hairline-strong bg-canvas-soft px-3 py-4 text-center transition hover:border-primary/50 hover:bg-surface-strong">
                     <svg
                       viewBox="0 0 24 24"
                       fill="none"
@@ -118,52 +319,52 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
               );
             }
 
+            if (port.input === "credentials" && provider) {
+              return (
+                <div key={port.key} className="mb-1">
+                  <div className="mb-1 flex items-center justify-between gap-1">
+                    <span className="text-[10px] text-muted">{port.key}</span>
+                    <TypeBadge type={port.type} />
+                  </div>
+                  <CredentialsButton provider={provider} />
+                </div>
+              );
+            }
+
             const isConnected = connectedInputs[port.key];
             return (
               <div key={port.key} className="relative flex items-center gap-2">
-                <Handle
-                  type="target"
-                  position={Position.Left}
-                  id={port.key}
-                  className="!w-2 !h-2 !border-2 !bg-surface-card !border-hairline-strong"
-                  style={{
-                    position: "relative",
-                    top: "auto",
-                    left: "auto",
-                    transform: "none",
-                  }}
-                />
-                {editableTypes.has(port.type) ? (
-                  <div className="flex-1">
-                    <label className="block text-[10px] leading-tight text-muted">
-                      {port.key}
-                    </label>
-                    {isConnected ? (
-                      <span className="text-[10px] text-semantic-success">
-                        connected
-                      </span>
-                    ) : (
-                      <input
-                        type={port.type === "number" ? "number" : "text"}
-                        value={(inputValues[port.key] as string | number) ?? ""}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          onInputChange(
-                            port.key,
-                            port.type === "number"
-                              ? val === ""
-                                ? ""
-                                : Number(val)
-                              : val,
-                          );
-                        }}
-                        className="w-full rounded border border-hairline px-1 py-0.5 text-xs text-ink"
-                      />
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-xs text-body">{port.key}</span>
+                {hasHandle(port) && (
+                  <Handle
+                    type="target"
+                    position={Position.Left}
+                    id={port.key}
+                    className="!w-2 !h-2 !border-2 !bg-surface-card !border-hairline-strong"
+                    style={{
+                      position: "relative",
+                      top: "auto",
+                      left: "auto",
+                      transform: "none",
+                    }}
+                  />
                 )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="truncate text-[10px] text-muted">
+                      {port.key}
+                    </span>
+                    <TypeBadge type={port.type} />
+                  </div>
+                  {isConnected ? (
+                    <span className="text-[10px] text-semantic-success">
+                      connected
+                    </span>
+                  ) : (
+                    renderWidget(port, inputValues[port.key], (value) =>
+                      onInputChange(port.key, value),
+                    )
+                  )}
+                </div>
               </div>
             );
           })}
@@ -175,9 +376,12 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
           {outputPorts.map((port) => (
             <div
               key={port.key}
-              className="relative flex items-center gap-2 justify-end"
+              className="relative flex items-center justify-end gap-2"
             >
-              <span className="text-xs text-body">{port.key}</span>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-body">{port.key}</span>
+                <TypeBadge type={port.type} />
+              </div>
               <Handle
                 type="source"
                 position={Position.Right}
@@ -224,6 +428,10 @@ function EditorInner({
   });
   const [execSidebarOpen, setExecSidebarOpen] = useState(false);
   const [nodeFiles, setNodeFiles] = useState<Record<string, File | null>>({});
+  const [nodeSearch, setNodeSearch] = useState("");
+  const [closedCategories, setClosedCategories] = useState<Set<string>>(
+    () => new Set(),
+  );
   const dragDataRef = useRef<{
     fnKey: string;
     defName: string;
@@ -231,6 +439,28 @@ function EditorInner({
   } | null>(null);
   const { running, currentExecution } = useAppSelector((s) => s.execution);
   const dispatch = useAppDispatch();
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const def of nodeDefs) {
+      set.add(def.category);
+    }
+    return [...set].sort();
+  }, [nodeDefs]);
+
+  const filteredByCategory = useCallback(
+    (category: string) => {
+      const query = nodeSearch.trim().toLowerCase();
+      return nodeDefs.filter(
+        (def) =>
+          def.category === category &&
+          (query === "" ||
+            def.name.toLowerCase().includes(query) ||
+            def.fnKey.toLowerCase().includes(query)),
+      );
+    },
+    [nodeDefs, nodeSearch],
+  );
 
   const nodeDefMap = useMemo(() => {
     const map = new Map<string, NodeDef>();
@@ -400,8 +630,37 @@ function EditorInner({
     );
   }, [edges, setNodes]);
 
+  const getPortType = useCallback(
+    (nodeId: string, portKey: string, kind: "input" | "output") => {
+      const node = nodes.find((n) => n.id === nodeId);
+      if (!node) {
+        return undefined;
+      }
+      const def = nodeDefMap.get(node.data.nodeDefinitionId as string);
+      const ports = kind === "input" ? def?.inputs : def?.outputs;
+      return ports?.find((p) => p.key === portKey)?.type;
+    },
+    [nodes, nodeDefMap],
+  );
+
   const onConnect = useCallback(
     (params: Connection) => {
+      const sourceType = getPortType(
+        params.source ?? "",
+        params.sourceHandle ?? "default",
+        "output",
+      );
+      const targetType = getPortType(
+        params.target ?? "",
+        params.targetHandle ?? "default",
+        "input",
+      );
+      if (!isTypeCompatible(sourceType, targetType)) {
+        alert(
+          `Tipos incompatibles: no se puede conectar ${sourceType ?? "?"} → ${targetType ?? "?"}`,
+        );
+        return;
+      }
       setEdges((eds) => {
         const filtered = eds.filter(
           (e) =>
@@ -420,7 +679,7 @@ function EditorInner({
         );
       });
     },
-    [setEdges],
+    [setEdges, getPortType],
   );
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -558,28 +817,76 @@ function EditorInner({
         <h3 className="text-display mb-3 text-xs uppercase tracking-wide text-muted">
           Nodos
         </h3>
-        {nodeDefs.map((def) => (
-          <div
-            key={def._id}
-            draggable
-            onDragStart={(e) => {
-              dragDataRef.current = {
-                fnKey: def.fnKey,
-                defName: def.name,
-                defId: def._id,
-              };
-              e.dataTransfer.setData("text/plain", def.fnKey);
-              e.dataTransfer.effectAllowed = "move";
-            }}
-            onDragEnd={() => {
-              dragDataRef.current = null;
-            }}
-            className="mb-2 cursor-grab rounded-md border border-hairline-strong bg-surface-card p-3 text-sm transition hover:border-primary/50 hover:bg-surface-strong active:cursor-grabbing"
-          >
-            <div className="font-medium text-ink">{def.name}</div>
-            <div className="text-xs text-muted">{def.fnKey}</div>
-          </div>
-        ))}
+        <input
+          type="search"
+          value={nodeSearch}
+          onChange={(e) => setNodeSearch(e.target.value)}
+          placeholder="Buscar nodos…"
+          className="mb-3 w-full rounded-md border border-hairline-strong bg-surface-card px-2.5 py-1.5 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+        />
+        {categories.map((category) => {
+          const defs = filteredByCategory(category);
+          if (defs.length === 0) {
+            return null;
+          }
+          const open = !closedCategories.has(category);
+          return (
+            <div key={category} className="mb-2">
+              <button
+                onClick={() =>
+                  setClosedCategories((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(category)) {
+                      next.delete(category);
+                    } else {
+                      next.add(category);
+                    }
+                    return next;
+                  })
+                }
+                className="flex w-full cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-left text-xs font-semibold uppercase tracking-wide text-muted transition hover:text-ink"
+              >
+                <span>{category}</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="rounded bg-surface-strong px-1 font-mono text-[10px]">
+                    {defs.length}
+                  </span>
+                  <span
+                    className={`transition-transform ${open ? "rotate-90" : ""}`}
+                  >
+                    ›
+                  </span>
+                </span>
+              </button>
+              {open && (
+                <div className="mt-1 space-y-1.5">
+                  {defs.map((def) => (
+                    <div
+                      key={def._id}
+                      draggable
+                      onDragStart={(e) => {
+                        dragDataRef.current = {
+                          fnKey: def.fnKey,
+                          defName: def.name,
+                          defId: def._id,
+                        };
+                        e.dataTransfer.setData("text/plain", def.fnKey);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragEnd={() => {
+                        dragDataRef.current = null;
+                      }}
+                      className="cursor-grab rounded-md border border-hairline-strong bg-surface-card p-3 text-sm transition hover:border-primary/50 hover:bg-surface-strong active:cursor-grabbing"
+                    >
+                      <div className="font-medium text-ink">{def.name}</div>
+                      <div className="text-xs text-muted">{def.fnKey}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div className="flex flex-1 flex-col">

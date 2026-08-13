@@ -96,6 +96,7 @@ export interface Chat {
   authorId: string;
   title: string;
   model: string;
+  assistantId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -137,4 +138,22 @@ export interface ChatFile {
   size: number;
   s3Key: string;
   createdAt: string;
+}
+
+export interface AssistantFile {
+  key: string;
+  name: string;
+  type: string;
+  size: number;
+}
+
+export interface Assistant {
+  _id: string;
+  authorId: string;
+  name: string;
+  systemPrompt: string;
+  model: string;
+  files: AssistantFile[];
+  createdAt: string;
+  updatedAt: string;
 }

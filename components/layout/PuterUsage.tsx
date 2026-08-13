@@ -33,7 +33,7 @@ export default function PuterUsage() {
 
   return (
     <div>
-      <h3 className="font-semibold">Puter usage</h3>
+      <h3 className="font-semibold">Credits</h3>
       {disconnected ? (
         <p className="text-sm text-gray-500 mt-1">
           No conectado. Registrate conectando tu cuenta de Puter para usar IA.

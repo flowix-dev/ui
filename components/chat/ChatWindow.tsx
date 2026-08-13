@@ -14,6 +14,7 @@ interface ChatWindowProps {
   streamingText: string;
   streamingToolCalls: ToolCall[];
   error: string | null;
+  hideModelSelector?: boolean;
   onSend: (content: string, fileIds: string[]) => void;
   onModelChange: (modelId: string) => void;
   onOpenSidebar: () => void;
@@ -29,6 +30,7 @@ export default function ChatWindow({
   streamingText,
   streamingToolCalls,
   error,
+  hideModelSelector = false,
   onSend,
   onModelChange,
   onOpenSidebar,
@@ -63,7 +65,7 @@ export default function ChatWindow({
           </h1>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {chat && (
+          {chat && !hideModelSelector && (
             <ModelSelector
               models={models}
               value={chat?.model ?? ""}

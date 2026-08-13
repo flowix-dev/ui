@@ -103,7 +103,7 @@ export const usersApi = {
 
 export const chatApi = {
   list: () => api.get("/chats"),
-  create: (data: { title?: string; model?: string }) =>
+  create: (data: { title?: string; model?: string; assistantId?: string }) =>
     api.post("/chats", data),
   get: (chatId: string) => api.get(`/chats/${chatId}`),
   update: (chatId: string, data: { title?: string; model?: string }) =>
@@ -118,4 +118,27 @@ export const chatApi = {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
+};
+
+export const assistantsApi = {
+  list: () => api.get("/assistants"),
+  get: (assistantId: string) => api.get(`/assistants/${assistantId}`),
+  create: (data: { name: string; systemPrompt: string; model?: string }) =>
+    api.post("/assistants", data),
+  update: (
+    assistantId: string,
+    data: { name?: string; systemPrompt?: string; model?: string },
+  ) => api.patch(`/assistants/${assistantId}`, data),
+  delete: (assistantId: string) => api.delete(`/assistants/${assistantId}`),
+  uploadFile: (assistantId: string, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return api.post(`/assistants/${assistantId}/files`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+  deleteFile: (assistantId: string, fileName: string) =>
+    api.delete(
+      `/assistants/${assistantId}/files/${encodeURIComponent(fileName)}`,
+    ),
 };

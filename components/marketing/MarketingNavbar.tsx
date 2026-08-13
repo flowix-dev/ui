@@ -53,7 +53,7 @@ export default function MarketingNavbar() {
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
-          className="flex h-10 w-10 items-center justify-center rounded-md text-ink md:hidden"
+          className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-md text-ink md:hidden"
           aria-label="Abrir menú"
         >
           <svg

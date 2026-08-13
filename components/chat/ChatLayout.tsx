@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
   beginStream,
@@ -42,19 +42,24 @@ export default function ChatLayout() {
     error,
   } = useAppSelector((state) => state.chat);
 
+  const generalChats = useMemo(
+    () => chats.filter((chat) => !chat.assistantId),
+    [chats],
+  );
+
   useEffect(() => {
     dispatch(fetchChats());
     dispatch(fetchModels());
   }, [dispatch]);
 
   useEffect(() => {
-    if (loading || currentChatId || chats.length === 0) {
+    if (loading || currentChatId || generalChats.length === 0) {
       return;
     }
-    const first = chats[0];
+    const first = generalChats[0];
     dispatch(selectChat(first._id));
     dispatch(fetchChat(first._id));
-  }, [loading, currentChatId, chats, dispatch]);
+  }, [loading, currentChatId, generalChats, dispatch]);
 
   const handleSelectChat = (chatId: string) => {
     dispatch(selectChat(chatId));
@@ -104,7 +109,7 @@ export default function ChatLayout() {
 
   const sidebar = (
     <ChatSidebar
-      chats={chats}
+      chats={generalChats}
       activeChatId={currentChatId}
       loading={loading}
       onSelect={handleSelectChat}

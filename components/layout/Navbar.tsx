@@ -42,6 +42,12 @@ export default function Navbar() {
                 Workflows
               </Link>
               <Link
+                href="/assistants"
+                className="text-sm font-medium text-body hover:text-ink"
+              >
+                Asistentes
+              </Link>
+              <Link
                 href="/chat"
                 className="text-sm font-medium text-body hover:text-ink"
               >
@@ -57,9 +63,12 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="hidden text-sm text-muted sm:inline">
+            <Link
+              href="/profile"
+              className="hidden text-sm text-muted hover:text-ink sm:inline"
+            >
               {user?.firstName} {user?.lastName}
-            </span>
+            </Link>
             <PuterUsageBadge />
             <button
               onClick={handleLogout}

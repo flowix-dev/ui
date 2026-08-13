@@ -5,32 +5,32 @@
   --font-sans: var(--font-inter), "Inter", -apple-system, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", "Fira Code", monospace;
 
-  --color-primary: #0e9f6e;
-  --color-primary-active: #0b7a54;
-  --color-link: #0b7a54;
-  --color-link-secondary: #0e9f6e;
-  --color-ink: #101a16;
-  --color-body: #4b5752;
-  --color-body-strong: #101a16;
-  --color-muted: #87928c;
-  --color-muted-soft: #c2cac5;
-  --color-hairline: #e0e5e0;
-  --color-hairline-soft: #eef1ed;
-  --color-hairline-strong: #c9d0ca;
-  --color-canvas: #f5f6f3;
-  --color-canvas-soft: #edf0ec;
+  --color-primary: #010a35;
+  --color-primary-active: #0d1f47;
+  --color-link: #2e63e0;
+  --color-link-secondary: #5080f0;
+  --color-ink: #0f1a2e;
+  --color-body: #48556a;
+  --color-body-strong: #0f1a2e;
+  --color-muted: #8792a8;
+  --color-muted-soft: #c2cbd9;
+  --color-hairline: #e2e6ee;
+  --color-hairline-soft: #edf0f6;
+  --color-hairline-strong: #c7ceda;
+  --color-canvas: #f6f7fa;
+  --color-canvas-soft: #eef1f7;
   --color-surface-card: #ffffff;
-  --color-surface-strong: #e6ebe6;
-  --color-surface-dark: #101a16;
-  --color-surface-dark-elevated: #1c2722;
+  --color-surface-strong: #e8ecf4;
+  --color-surface-dark: #0f1a2e;
+  --color-surface-dark-elevated: #1a2844;
   --color-on-primary: #ffffff;
   --color-on-dark: #ffffff;
-  --color-on-dark-soft: #a8b5ae;
-  --color-gradient-signal-light: #d9f0e5;
-  --color-gradient-signal-mid: #b9e3cd;
+  --color-on-dark-soft: #a9b6cd;
+  --color-gradient-signal-light: #d9e4fb;
+  --color-gradient-signal-mid: #b9cdf7;
   --color-accent-warning: #c77e1e;
   --color-accent-preview: #8145b5;
-  --color-accent-link-bright: #7be0b4;
+  --color-accent-link-bright: #7ea0ff;
   --color-semantic-error: #c4453c;
   --color-semantic-success: #0e9f6e;
 
@@ -66,8 +66,8 @@
   .hero-wash {
     background-image: radial-gradient(
       85% 55% at 50% 0%,
-      rgba(217, 240, 229, 0.9) 0%,
-      rgba(217, 240, 229, 0) 70%
+      rgba(217, 228, 251, 0.9) 0%,
+      rgba(217, 228, 251, 0) 70%
     );
     background-color: var(--color-canvas);
   }
@@ -129,6 +129,7 @@
     font-weight: 600;
     line-height: 1;
     white-space: nowrap;
+    cursor: pointer;
     transition: background-color 0.15s ease;
   }
 
@@ -151,6 +152,7 @@
     font-weight: 500;
     line-height: 1;
     white-space: nowrap;
+    cursor: pointer;
     transition: background-color 0.15s ease;
   }
 
