@@ -24,63 +24,66 @@ export default function ExecutionsPage() {
   const statusColor = (status: string) => {
     switch (status) {
       case "completed":
-        return "bg-green-100 text-green-800";
+        return "bg-semantic-success/10 text-semantic-success";
       case "failed":
-        return "bg-red-100 text-red-800";
+        return "bg-semantic-error/10 text-semantic-error";
       case "running":
-        return "bg-blue-100 text-blue-800";
+        return "bg-accent-warning/10 text-accent-warning";
       case "pending":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-surface-strong text-body";
       case "cancelled":
-        return "bg-gray-100 text-gray-800";
+        return "bg-surface-strong text-body";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-surface-strong text-body";
     }
   };
 
   return (
     <AuthGuard>
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 md:pb-8">
-        <h1 className="text-2xl font-bold mb-6">Execution History</h1>
+      <main className="mx-auto max-w-7xl px-4 pt-8 pb-24 sm:px-6 md:pb-8 lg:px-8">
+        <h1 className="text-display text-2xl text-ink">
+          Historial de ejecuciones
+        </h1>
+        <div className="mt-3 w-16 flow-line" aria-hidden="true" />
 
         {loading ? (
-          <div className="text-center py-12 text-gray-500">Loading...</div>
+          <div className="py-12 text-center text-sm text-muted">Cargando…</div>
         ) : executions.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            No executions found.
+          <div className="py-12 text-center text-sm text-muted">
+            No hay ejecuciones todavía.
           </div>
         ) : (
           <>
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="mt-6 overflow-hidden rounded-lg border border-hairline-strong bg-surface-card shadow-soft">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
-                    <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">
+                  <tr className="border-b border-hairline bg-canvas-soft">
+                    <th className="px-6 py-3 text-left text-sm font-medium text-muted">
                       Workflow
                     </th>
-                    <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">
-                      Status
+                    <th className="px-6 py-3 text-left text-sm font-medium text-muted">
+                      Estado
                     </th>
-                    <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">
-                      Started
+                    <th className="px-6 py-3 text-left text-sm font-medium text-muted">
+                      Inicio
                     </th>
-                    <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">
-                      Duration
+                    <th className="px-6 py-3 text-left text-sm font-medium text-muted">
+                      Duración
                     </th>
-                    <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">
-                      Trigger
+                    <th className="px-6 py-3 text-left text-sm font-medium text-muted">
+                      Disparo
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-hairline">
                   {executions.map((exec) => (
                     <tr
                       key={exec._id}
-                      className="hover:bg-gray-50 cursor-pointer"
+                      className="cursor-pointer hover:bg-canvas-soft"
                       onClick={() => router.push(`/executions/${exec._id}`)}
                     >
-                      <td className="px-6 py-4 text-sm font-medium">
+                      <td className="px-6 py-4 text-sm font-medium text-ink">
                         {typeof exec.workflowId === "object" &&
                         exec.workflowId !== null
                           ? (exec.workflowId as { name: string }).name
@@ -88,20 +91,20 @@ export default function ExecutionsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor(exec.status)}`}
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(exec.status)}`}
                         >
                           {exec.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
+                      <td className="px-6 py-4 text-sm text-body">
                         {new Date(exec.startedAt).toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
+                      <td className="px-6 py-4 text-sm text-body">
                         {exec.duration
                           ? `${(exec.duration / 1000).toFixed(1)}s`
                           : "-"}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
+                      <td className="px-6 py-4 text-sm text-body">
                         {exec.triggerType}
                       </td>
                     </tr>
@@ -111,23 +114,23 @@ export default function ExecutionsPage() {
             </div>
 
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-6">
+              <div className="mt-6 flex items-center justify-center gap-2">
                 <button
                   disabled={currentPage <= 1}
                   onClick={() => setCurrentPage((p) => p - 1)}
-                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 cursor-pointer"
+                  className="btn-secondary disabled:opacity-50"
                 >
-                  Previous
+                  Anterior
                 </button>
-                <span className="text-sm text-gray-500">
-                  Page {currentPage} of {totalPages}
+                <span className="text-sm text-muted">
+                  Página {currentPage} de {totalPages}
                 </span>
                 <button
                   disabled={currentPage >= totalPages}
                   onClick={() => setCurrentPage((p) => p + 1)}
-                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 cursor-pointer"
+                  className="btn-secondary disabled:opacity-50"
                 >
-                  Next
+                  Siguiente
                 </button>
               </div>
             )}

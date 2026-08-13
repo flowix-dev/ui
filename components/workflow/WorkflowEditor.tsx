@@ -22,7 +22,8 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import { WorkflowNode, WorkflowEdge } from "@/lib/types";
 import { nodeDefinitionsApi } from "@/lib/api";
-import { useAppSelector } from "@/lib/hooks";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { fetchExecution } from "@/store/executionSlice";
 import ExecutionSidebar from "./ExecutionSidebar";
 
 interface WorkflowEditorProps {
@@ -30,7 +31,11 @@ interface WorkflowEditorProps {
   initialNodes: WorkflowNode[];
   initialEdges: WorkflowEdge[];
   onSave: (nodes: WorkflowNode[], edges: WorkflowEdge[]) => void;
-  onRun: (file?: File) => void;
+  onRun: (
+    file: File | undefined,
+    nodes: WorkflowNode[],
+    edges: WorkflowEdge[],
+  ) => void;
   saving: boolean;
 }
 
@@ -73,11 +78,11 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
 
   return (
     <div
-      className={`px-3 py-2 bg-white border-2 rounded-xl shadow-sm min-w-[160px] ${
-        selected ? "border-blue-500" : "border-gray-300"
+      className={`min-w-[160px] rounded-lg border-2 bg-surface-card px-3 py-2 shadow-soft ${
+        selected ? "border-primary" : "border-hairline-strong"
       }`}
     >
-      <div className="text-sm font-semibold mb-2 text-gray-800">{label}</div>
+      <div className="mb-2 text-sm font-semibold text-ink">{label}</div>
 
       {inputPorts.length > 0 && (
         <div className="mb-2 space-y-1">
@@ -85,7 +90,7 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
             if (port.type === "file") {
               return (
                 <div key={port.key} className="mb-1">
-                  <label className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-4 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition">
+                  <label className="flex flex-col items-center justify-center gap-1 rounded-md border border-dashed border-hairline-strong bg-canvas-soft px-3 py-4 text-center transition hover:border-primary/50 hover:bg-surface-strong cursor-pointer">
                     <svg
                       viewBox="0 0 24 24"
                       fill="none"
@@ -93,11 +98,11 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="h-5 w-5 text-gray-400"
+                      className="h-5 w-5 text-muted"
                     >
                       <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
                     </svg>
-                    <span className="text-xs font-medium text-gray-600">
+                    <span className="text-xs font-medium text-body">
                       {uploadedFileName || "Elegir archivo"}
                     </span>
                     <input
@@ -120,7 +125,7 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
                   type="target"
                   position={Position.Left}
                   id={port.key}
-                  className="!w-2 !h-2 !border-2 !bg-white !border-gray-400"
+                  className="!w-2 !h-2 !border-2 !bg-surface-card !border-hairline-strong"
                   style={{
                     position: "relative",
                     top: "auto",
@@ -130,11 +135,11 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
                 />
                 {editableTypes.has(port.type) ? (
                   <div className="flex-1">
-                    <label className="text-[10px] text-gray-400 block leading-tight">
+                    <label className="block text-[10px] leading-tight text-muted">
                       {port.key}
                     </label>
                     {isConnected ? (
-                      <span className="text-[10px] text-green-600">
+                      <span className="text-[10px] text-semantic-success">
                         connected
                       </span>
                     ) : (
@@ -152,12 +157,12 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
                               : val,
                           );
                         }}
-                        className="w-full px-1 py-0.5 text-xs border border-gray-200 rounded"
+                        className="w-full rounded border border-hairline px-1 py-0.5 text-xs text-ink"
                       />
                     )}
                   </div>
                 ) : (
-                  <span className="text-xs text-gray-500">{port.key}</span>
+                  <span className="text-xs text-body">{port.key}</span>
                 )}
               </div>
             );
@@ -172,12 +177,12 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
               key={port.key}
               className="relative flex items-center gap-2 justify-end"
             >
-              <span className="text-xs text-gray-500">{port.key}</span>
+              <span className="text-xs text-body">{port.key}</span>
               <Handle
                 type="source"
                 position={Position.Right}
                 id={port.key}
-                className="!w-2 !h-2 !border-2 !bg-white !border-gray-400"
+                className="!w-2 !h-2 !border-2 !bg-surface-card !border-hairline-strong"
                 style={{
                   position: "relative",
                   top: "auto",
@@ -224,7 +229,8 @@ function EditorInner({
     defName: string;
     defId: string;
   } | null>(null);
-  const { running } = useAppSelector((s) => s.execution);
+  const { running, currentExecution } = useAppSelector((s) => s.execution);
+  const dispatch = useAppDispatch();
 
   const nodeDefMap = useMemo(() => {
     const map = new Map<string, NodeDef>();
@@ -298,10 +304,46 @@ function EditorInner({
   const [edges, setEdges, onEdgesChange] = useEdgesState(rfEdges);
 
   useEffect(() => {
+    if (!running || !currentExecution?._id) {
+      return;
+    }
+    const id = setInterval(() => {
+      dispatch(fetchExecution(currentExecution._id));
+    }, 2000);
+    return () => clearInterval(id);
+  }, [running, currentExecution?._id, dispatch]);
+
+  useEffect(() => {
     nodeDefinitionsApi.list().then(({ data }) => {
       setNodeDefs(data.definitions);
     });
   }, []);
+
+  useEffect(() => {
+    const nodeExecutions = currentExecution?.nodeExecutions;
+    if (!nodeExecutions?.length) {
+      return;
+    }
+    const next: Record<string, Record<string, unknown>> = {};
+    for (const ne of nodeExecutions) {
+      if (ne.inputData) {
+        next[String(ne.nodeId)] = ne.inputData as Record<string, unknown>;
+      }
+    }
+    if (Object.keys(next).length === 0) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setNodeInputs((prev) => {
+        const merged = { ...prev };
+        for (const [nodeId, inputs] of Object.entries(next)) {
+          merged[nodeId] = { ...(merged[nodeId] || {}), ...inputs };
+        }
+        return merged;
+      });
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [currentExecution]);
 
   useEffect(() => {
     setNodes((nds) =>
@@ -392,6 +434,9 @@ function EditorInner({
       const dragData = dragDataRef.current;
       if (!dragData) return;
 
+      const draggedKey = event.dataTransfer.getData("text/plain");
+      if (draggedKey !== dragData.fnKey) return;
+
       const maxId = nodes.reduce((max, n) => Math.max(max, parseInt(n.id)), 0);
       const newId = maxId + 1;
 
@@ -467,7 +512,7 @@ function EditorInner({
     [nodes, fileUploadDefIds],
   );
 
-  const handleSave = () => {
+  const buildSavedState = useCallback(() => {
     const savedNodes: WorkflowNode[] = nodes.map((n) => {
       const def = n.data.nodeDef as NodeDef | undefined;
       const fileInputKeys = new Set(
@@ -499,14 +544,19 @@ function EditorInner({
       targetKey: e.targetHandle || "default",
     }));
 
+    return { savedNodes, savedEdges };
+  }, [nodes, edges, nodeInputs]);
+
+  const handleSave = () => {
+    const { savedNodes, savedEdges } = buildSavedState();
     onSave(savedNodes, savedEdges);
   };
 
   return (
     <div className="flex h-full">
-      <div className="w-60 bg-white border-r border-gray-200 p-4 overflow-y-auto shrink-0">
-        <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">
-          Nodes
+      <div className="w-60 shrink-0 overflow-y-auto border-r border-hairline-strong bg-canvas-soft p-4">
+        <h3 className="text-display mb-3 text-xs uppercase tracking-wide text-muted">
+          Nodos
         </h3>
         {nodeDefs.map((def) => (
           <div
@@ -521,25 +571,29 @@ function EditorInner({
               e.dataTransfer.setData("text/plain", def.fnKey);
               e.dataTransfer.effectAllowed = "move";
             }}
-            className="mb-2 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-grab active:cursor-grabbing hover:border-blue-400 hover:bg-blue-50 transition text-sm"
+            onDragEnd={() => {
+              dragDataRef.current = null;
+            }}
+            className="mb-2 cursor-grab rounded-md border border-hairline-strong bg-surface-card p-3 text-sm transition hover:border-primary/50 hover:bg-surface-strong active:cursor-grabbing"
           >
-            <div className="font-medium">{def.name}</div>
-            <div className="text-xs text-gray-400">{def.fnKey}</div>
+            <div className="font-medium text-ink">{def.name}</div>
+            <div className="text-xs text-muted">{def.fnKey}</div>
           </div>
         ))}
       </div>
 
-      <div className="flex-1 flex flex-col">
-        <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3 shrink-0">
+      <div className="flex flex-1 flex-col">
+        <div className="flex shrink-0 items-center gap-3 border-b border-hairline-strong bg-surface-card px-4 py-2">
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition cursor-pointer"
+            className="btn-secondary disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save"}
+            {saving ? "Guardando…" : "Guardar"}
           </button>
           <button
             onClick={() => {
+              const { savedNodes, savedEdges } = buildSavedState();
               if (hasFileUpload) {
                 const uploadNode = nodes.find(
                   (n) =>
@@ -553,30 +607,30 @@ function EditorInner({
                   );
                   return;
                 }
-                onRun(file);
+                onRun(file, savedNodes, savedEdges);
               } else {
-                onRun();
+                onRun(undefined, savedNodes, savedEdges);
               }
               setExecSidebarOpen(true);
             }}
-            className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition cursor-pointer"
+            className="btn-primary"
           >
-            {running ? "Running..." : "Run"}
+            {running ? "Corriendo…" : "Correr"}
           </button>
           {running && (
             <button
               onClick={() => setExecSidebarOpen((v) => !v)}
-              className={`px-3 py-1.5 text-sm rounded-lg border transition cursor-pointer ${
+              className={`rounded-md border px-3 py-1.5 text-sm transition cursor-pointer ${
                 execSidebarOpen
-                  ? "bg-blue-50 border-blue-300 text-blue-700"
-                  : "bg-white border-gray-300 text-gray-600 hover:bg-gray-50"
+                  ? "border-primary/50 bg-primary/10 text-primary-active"
+                  : "border-hairline-strong bg-surface-card text-body hover:bg-surface-strong"
               }`}
             >
-              Execution
+              Ejecución
             </button>
           )}
-          <div className="text-xs text-gray-400 ml-auto">
-            Drag & drop nodes · Connect outputs → inputs
+          <div className="ml-auto text-xs text-muted">
+            Arrastrá nodos · Conectá salidas → entradas
           </div>
         </div>
 
@@ -597,7 +651,7 @@ function EditorInner({
               nodeTypes={nodeTypes}
               fitView
               deleteKeyCode="Delete"
-              className="bg-gray-50"
+              className="bg-canvas-soft"
             >
               <Background />
               <Controls />

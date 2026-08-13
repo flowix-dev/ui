@@ -30,7 +30,17 @@ export default function WorkflowEditorPage() {
     dispatch(saveWorkflow({ id: params.id as string, nodes, edges }));
   };
 
-  const handleRun = (file?: File) => {
+  const handleRun = async (
+    file: File | undefined,
+    nodes: WorkflowNode[],
+    edges: WorkflowEdge[],
+  ) => {
+    const saveResult = await dispatch(
+      saveWorkflow({ id: params.id as string, nodes, edges }),
+    );
+    if (!saveWorkflow.fulfilled.match(saveResult)) {
+      return;
+    }
     dispatch(runWorkflow({ workflowId: params.id as string, file }));
   };
 
@@ -38,8 +48,8 @@ export default function WorkflowEditorPage() {
     return (
       <AuthGuard>
         <Navbar />
-        <div className="flex items-center justify-center h-[calc(100vh-56px)] text-gray-500">
-          Loading...
+        <div className="flex h-[calc(100vh-56px)] items-center justify-center text-muted">
+          Cargando…
         </div>
       </AuthGuard>
     );
@@ -49,8 +59,8 @@ export default function WorkflowEditorPage() {
     return (
       <AuthGuard>
         <Navbar />
-        <div className="flex items-center justify-center h-[calc(100vh-56px)] text-gray-500">
-          Workflow not found
+        <div className="flex h-[calc(100vh-56px)] items-center justify-center text-muted">
+          Workflow no encontrado
         </div>
       </AuthGuard>
     );
@@ -61,15 +71,15 @@ export default function WorkflowEditorPage() {
       <div className="flex flex-col h-screen">
         <Navbar />
         <div className="flex-1 flex flex-col">
-          <div className="bg-white border-b border-gray-200 px-6 py-3 shrink-0">
+          <div className="bg-surface-card shrink-0 border-b border-hairline-strong px-6 py-3">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push("/workflows")}
-                className="text-sm text-blue-600 hover:underline cursor-pointer"
+                className="text-sm text-link hover:underline cursor-pointer"
               >
                 ← Workflows
               </button>
-              <h1 className="text-lg font-semibold">{wf.name}</h1>
+              <h1 className="text-display text-lg text-ink">{wf.name}</h1>
             </div>
           </div>
           <div className="flex-1">

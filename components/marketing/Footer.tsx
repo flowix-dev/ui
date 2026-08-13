@@ -52,7 +52,9 @@ export default function Footer() {
               <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-on-primary">
                 <FlowixLogo />
               </span>
-              <span className="text-base font-semibold text-ink">Flowpath</span>
+              <span className="text-display text-base font-semibold text-ink">
+                Flowpath
+              </span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-body">
               Automatización, asistentes y chat con IA para equipos que

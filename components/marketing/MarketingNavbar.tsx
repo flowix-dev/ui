@@ -21,7 +21,9 @@ export default function MarketingNavbar() {
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-on-primary">
             <FlowixLogo />
           </span>
-          <span className="text-base font-semibold text-ink">Flowpath</span>
+          <span className="text-display text-base font-semibold text-ink">
+            Flowpath
+          </span>
         </Link>
 
         <div className="hidden items-center gap-6 md:flex">

@@ -5,22 +5,25 @@ export default function Hero() {
   return (
     <section className="hero-wash">
       <div className="mx-auto max-w-6xl px-4 pt-16 pb-20 text-center sm:px-6 sm:pt-24 lg:pt-28">
-        <span className="badge-pill">Plataforma de IA</span>
-        <h1 className="mx-auto mt-6 max-w-4xl text-[2rem] font-semibold leading-[1.1] tracking-[-0.03em] text-ink sm:text-[3rem] lg:text-[4rem] lg:leading-[1.05]">
-          Automatización, asistentes y chat con IA en un solo lugar
+        <span className="eyebrow justify-center">
+          Plataforma de automatización
+        </span>
+        <h1 className="text-display mx-auto mt-6 max-w-4xl text-[1.75rem] leading-[1.15] tracking-[-0.03em] text-ink sm:text-[2.5rem] lg:text-[3.25rem]">
+          Conectá nodos, no cables. Hacé que el trabajo fluya solo.
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-body sm:text-lg">
-          Crea workflows de automatización, asistentes y chatbots, y conversa
-          con los modelos más avanzados — todo desde una sola plataforma.
+          Armá flujos visuales que disparan HTTP, corren IA y avisan cuando algo
+          pasa. O simplemente hablá con los modelos desde el mismo lugar.
         </p>
         <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link href="/register" className="btn-primary">
             Empezar gratis
           </Link>
           <Link href="#features" className="btn-secondary">
-            Ver qué puedes crear
+            Ver qué podés crear
           </Link>
         </div>
+        <div className="mx-auto mt-8 max-w-md flow-line" aria-hidden="true" />
         <DeviceMockup />
       </div>
     </section>

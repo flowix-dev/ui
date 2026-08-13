@@ -5,39 +5,39 @@
   --font-sans: var(--font-inter), "Inter", -apple-system, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", "Fira Code", monospace;
 
-  --color-primary: #000000;
-  --color-primary-active: #1a1a1a;
-  --color-link: #0d74ce;
-  --color-link-secondary: #476cff;
-  --color-ink: #171717;
-  --color-body: #60646c;
-  --color-body-strong: #171717;
-  --color-muted: #999999;
-  --color-muted-soft: #cccccc;
-  --color-hairline: #f0f0f3;
-  --color-hairline-soft: #f5f5f7;
-  --color-hairline-strong: #dcdee0;
-  --color-canvas: #ffffff;
-  --color-canvas-soft: #fafafa;
+  --color-primary: #0e9f6e;
+  --color-primary-active: #0b7a54;
+  --color-link: #0b7a54;
+  --color-link-secondary: #0e9f6e;
+  --color-ink: #101a16;
+  --color-body: #4b5752;
+  --color-body-strong: #101a16;
+  --color-muted: #87928c;
+  --color-muted-soft: #c2cac5;
+  --color-hairline: #e0e5e0;
+  --color-hairline-soft: #eef1ed;
+  --color-hairline-strong: #c9d0ca;
+  --color-canvas: #f5f6f3;
+  --color-canvas-soft: #edf0ec;
   --color-surface-card: #ffffff;
-  --color-surface-strong: #f0f0f3;
-  --color-surface-dark: #171717;
-  --color-surface-dark-elevated: #1a1a1a;
+  --color-surface-strong: #e6ebe6;
+  --color-surface-dark: #101a16;
+  --color-surface-dark-elevated: #1c2722;
   --color-on-primary: #ffffff;
   --color-on-dark: #ffffff;
-  --color-on-dark-soft: #b0b4ba;
-  --color-gradient-sky-light: #cfe7ff;
-  --color-gradient-sky-mid: #a8c8e8;
-  --color-accent-warning: #ab6400;
+  --color-on-dark-soft: #a8b5ae;
+  --color-gradient-signal-light: #d9f0e5;
+  --color-gradient-signal-mid: #b9e3cd;
+  --color-accent-warning: #c77e1e;
   --color-accent-preview: #8145b5;
-  --color-accent-link-bright: #47c2ff;
-  --color-semantic-error: #eb8e90;
-  --color-semantic-success: #16a34a;
+  --color-accent-link-bright: #7be0b4;
+  --color-semantic-error: #c4453c;
+  --color-semantic-success: #0e9f6e;
 
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --radius-xxl: 1.5rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-xxl: 1rem;
   --radius-pill: 9999px;
 
   --spacing-section: 6rem;
@@ -55,20 +55,64 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
+
+  ::selection {
+    background-color: var(--color-primary);
+    color: var(--color-on-primary);
+  }
 }
 
 @layer components {
   .hero-wash {
     background-image: radial-gradient(
       85% 55% at 50% 0%,
-      rgba(207, 231, 255, 0.9) 0%,
-      rgba(207, 231, 255, 0) 70%
+      rgba(217, 240, 229, 0.9) 0%,
+      rgba(217, 240, 229, 0) 70%
     );
     background-color: var(--color-canvas);
   }
 
   .shadow-soft {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 1px 0 rgba(16, 26, 22, 0.03),
+      0 6px 18px rgba(16, 26, 22, 0.06);
+  }
+
+  .text-display {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+  }
+
+  .flow-line {
+    height: 1px;
+    background-image: linear-gradient(
+      to right,
+      var(--color-primary) 0 6px,
+      transparent 6px 10px
+    );
+    background-size: 10px 1px;
+    background-repeat: repeat-x;
+    opacity: 0.55;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-primary-active);
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 2px;
+    background-color: var(--color-primary);
   }
 
   .btn-primary {
@@ -82,7 +126,7 @@
     background-color: var(--color-primary);
     color: var(--color-on-primary);
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1;
     white-space: nowrap;
     transition: background-color 0.15s ease;
@@ -117,13 +161,16 @@
   .badge-pill {
     display: inline-flex;
     align-items: center;
+    gap: 0.375rem;
     padding: 0.25rem 0.625rem;
+    border: 1px solid var(--color-hairline-strong);
     border-radius: var(--radius-pill);
-    background-color: var(--color-surface-strong);
+    background-color: var(--color-surface-card);
     color: var(--color-ink);
-    font-size: 0.6875rem;
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
     font-weight: 600;
-    letter-spacing: 0.055rem;
+    letter-spacing: 0.07em;
     line-height: 1.4;
     text-transform: uppercase;
   }

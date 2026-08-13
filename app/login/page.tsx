@@ -33,11 +33,13 @@ export default function LoginPage() {
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-on-primary">
             <FlowixLogo />
           </span>
-          <span className="text-base font-semibold text-ink">Flowpath</span>
+          <span className="text-display text-base font-semibold text-ink">
+            Flowpath
+          </span>
         </Link>
 
         <div className="rounded-lg border border-hairline-strong bg-surface-card p-8">
-          <h1 className="text-[1.5rem] font-semibold text-ink">
+          <h1 className="text-display text-[1.5rem] text-ink">
             Iniciar sesión
           </h1>
           <p className="mt-1 text-sm text-body">

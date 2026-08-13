@@ -24,7 +24,7 @@ export default function Navbar() {
           <div className="flex items-center gap-6">
             <Link
               href="/dashboard"
-              className="text-base font-semibold text-ink"
+              className="text-display text-base font-semibold text-ink"
             >
               Flowpath
             </Link>

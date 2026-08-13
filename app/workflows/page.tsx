@@ -35,97 +35,95 @@ export default function WorkflowsPage() {
   return (
     <AuthGuard>
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 md:pb-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Workflows</h1>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition cursor-pointer"
-          >
-            + New Workflow
+      <main className="mx-auto max-w-7xl px-4 pt-8 pb-24 sm:px-6 md:pb-8 lg:px-8">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-display text-2xl text-ink">Workflows</h1>
+            <div className="mt-3 w-16 flow-line" aria-hidden="true" />
+          </div>
+          <button onClick={() => setShowCreate(true)} className="btn-primary">
+            + Nuevo workflow
           </button>
         </div>
 
         {showCreate && (
-          <div className="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex gap-3">
+          <div className="mb-6 flex gap-3 rounded-lg border border-hairline-strong bg-surface-card p-4 shadow-soft">
             <input
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-              placeholder="Workflow name..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Nombre del workflow…"
+              className="flex-1 rounded-md border border-hairline-strong bg-canvas-soft px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               autoFocus
             />
-            <button
-              onClick={handleCreate}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition cursor-pointer"
-            >
-              Create
+            <button onClick={handleCreate} className="btn-primary">
+              Crear
             </button>
             <button
               onClick={() => {
                 setShowCreate(false);
                 setNewName("");
               }}
-              className="px-4 py-2 text-gray-500 hover:text-gray-700 text-sm cursor-pointer"
+              className="px-4 py-2 text-sm text-muted hover:text-ink cursor-pointer"
             >
-              Cancel
+              Cancelar
             </button>
           </div>
         )}
 
         {loading ? (
-          <div className="text-center py-12 text-gray-500">Loading...</div>
+          <div className="py-12 text-center text-sm text-muted">Cargando…</div>
         ) : workflows.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-2xl shadow-sm border border-gray-200">
-            <p className="text-gray-500 mb-4">No workflows yet</p>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 cursor-pointer"
-            >
-              Create your first workflow
+          <div className="rounded-lg border border-hairline-strong bg-surface-card py-12 text-center shadow-soft">
+            <p className="mb-4 text-sm text-body">Todavía no hay workflows</p>
+            <button onClick={() => setShowCreate(true)} className="btn-primary">
+              Crear tu primer workflow
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {workflows.map((wf) => (
               <div
                 key={wf._id}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition cursor-pointer"
+                className="cursor-pointer rounded-lg border border-hairline-strong bg-surface-card p-5 shadow-soft transition hover:border-primary/40"
                 onClick={() => router.push(`/workflows/${wf._id}`)}
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-semibold text-lg">{wf.name}</h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {wf.nodes.length} node{wf.nodes.length !== 1 ? "s" : ""} ·{" "}
-                      {wf.edges.length} edge{wf.edges.length !== 1 ? "s" : ""}
+                    <h3 className="text-display text-base text-ink">
+                      {wf.name}
+                    </h3>
+                    <p className="mt-1 text-sm text-body">
+                      {wf.nodes.length} nodo{wf.nodes.length !== 1 ? "s" : ""} ·{" "}
+                      {wf.edges.length} conexión
+                      {wf.edges.length !== 1 ? "es" : ""}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Updated {new Date(wf.updatedAt).toLocaleDateString()}
+                    <p className="mt-1 text-xs text-muted">
+                      Actualizado el{" "}
+                      {new Date(wf.updatedAt).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-2 mt-3">
+                <div className="mt-3 flex gap-3">
                   <span
                     onClick={(e) => {
                       e.stopPropagation();
                       router.push(`/workflows/${wf._id}`);
                     }}
-                    className="text-xs text-blue-600 hover:underline cursor-pointer"
+                    className="text-xs text-link hover:underline cursor-pointer"
                   >
-                    Open
+                    Abrir
                   </span>
                   <span
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (confirm("Delete this workflow?"))
+                      if (confirm("¿Eliminar este workflow?"))
                         dispatch(deleteWorkflow(wf._id));
                     }}
-                    className="text-xs text-red-600 hover:underline cursor-pointer"
+                    className="text-xs text-semantic-error hover:underline cursor-pointer"
                   >
-                    Delete
+                    Eliminar
                   </span>
                 </div>
               </div>
