@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import AuthGuard from "@/components/layout/AuthGuard";
+import PuterUsage from "@/components/layout/PuterUsage";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { fetchUserExecutions } from "@/store/executionSlice";
 
@@ -37,7 +38,7 @@ export default function DashboardPage() {
   return (
     <AuthGuard>
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 md:pb-8">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
           <h1 className="text-2xl font-bold">
             Welcome back, {user?.firstName} 👋
@@ -67,10 +68,7 @@ export default function DashboardPage() {
             </p>
           </button>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h3 className="font-semibold">Credits</h3>
-            <p className="text-2xl font-bold text-blue-600 mt-1">
-              {user?.credits ?? 0}
-            </p>
+            <PuterUsage />
           </div>
         </div>
 

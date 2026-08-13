@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { WorkflowNode, NodeExecutionStatus } from "@/lib/types";
 import { useAppSelector, useAppDispatch } from "@/lib/hooks";
 import {
@@ -31,6 +31,18 @@ const statusIcon: Record<NodeExecutionStatus, string> = {
   skipped: "―",
 };
 
+function JsonBlock({ data }: { data: unknown }) {
+  if (data === undefined || data === null || data === "") {
+    return <p className="text-xs text-gray-300">—</p>;
+  }
+  const text = JSON.stringify(data, null, 2);
+  return (
+    <pre className="text-[10px] bg-gray-50 border border-gray-100 rounded p-2 overflow-auto text-gray-600 max-h-40">
+      {text}
+    </pre>
+  );
+}
+
 interface ExecutionSidebarProps {
   open: boolean;
   onClose: () => void;
@@ -47,6 +59,7 @@ export default function ExecutionSidebar({
     (s) => s.execution,
   );
   const socketSubscribed = useRef(false);
+  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     if (!open || !currentExecution?._id) return;
@@ -193,22 +206,64 @@ export default function ExecutionSidebar({
         ) : (
           nodes.map((node) => {
             const status = nodeStatuses[node.id] || "pending";
+            const exec = currentExecution?.nodeExecutions?.find(
+              (e) => e.nodeId === node.id,
+            );
+            const isExpanded = !!expanded[node.id];
+            const error = exec?.error;
             return (
-              <div
-                key={node.id}
-                className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 border-b border-gray-50"
-              >
-                <span
-                  className={`inline-flex items-center justify-center w-5 h-5 rounded text-xs font-medium ${statusColor[status]}`}
+              <div key={node.id} className="border-b border-gray-50">
+                <button
+                  onClick={() =>
+                    setExpanded((prev) => ({
+                      ...prev,
+                      [node.id]: !prev[node.id],
+                    }))
+                  }
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left cursor-pointer"
                 >
-                  {statusIcon[status]}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {node.name || `Node ${node.id}`}
-                  </p>
-                  <p className="text-xs text-gray-400 capitalize">{status}</p>
-                </div>
+                  <span
+                    className={`inline-flex items-center justify-center w-5 h-5 rounded text-xs font-medium ${statusColor[status]}`}
+                  >
+                    {statusIcon[status]}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {node.name || `Node ${node.id}`}
+                    </p>
+                    <p className="text-xs text-gray-400 capitalize">{status}</p>
+                  </div>
+                  {error && <span className="text-red-500 text-xs">✕</span>}
+                  <span
+                    className={`text-gray-400 transition-transform ${
+                      isExpanded ? "rotate-90" : ""
+                    }`}
+                  >
+                    ›
+                  </span>
+                </button>
+
+                {isExpanded && (
+                  <div className="px-4 pb-3 space-y-2">
+                    {error && (
+                      <p className="text-xs text-red-500 break-words">
+                        {error}
+                      </p>
+                    )}
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">
+                        Inputs
+                      </p>
+                      <JsonBlock data={exec?.inputData} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">
+                        Outputs
+                      </p>
+                      <JsonBlock data={exec?.outputData} />
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })

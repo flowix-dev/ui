@@ -30,7 +30,7 @@ interface WorkflowEditorProps {
   initialNodes: WorkflowNode[];
   initialEdges: WorkflowEdge[];
   onSave: (nodes: WorkflowNode[], edges: WorkflowEdge[]) => void;
-  onRun: () => void;
+  onRun: (file?: File) => void;
   saving: boolean;
 }
 
@@ -58,6 +58,9 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
   const inputValues = (data.inputValues as Record<string, unknown>) || {};
   const connectedInputs =
     (data.connectedInputs as Record<string, boolean>) || {};
+  const uploadedFileName = data.uploadedFileName as string | null | undefined;
+  const onNodeFileSelect = data.onNodeFileSelect as
+    ((file: File | null) => void) | undefined;
   const onInputChange = data.onInputChange as (
     key: string,
     value: unknown,
@@ -79,6 +82,37 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
       {inputPorts.length > 0 && (
         <div className="mb-2 space-y-1">
           {inputPorts.map((port) => {
+            if (port.type === "file") {
+              return (
+                <div key={port.key} className="mb-1">
+                  <label className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-4 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-5 w-5 text-gray-400"
+                    >
+                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                    </svg>
+                    <span className="text-xs font-medium text-gray-600">
+                      {uploadedFileName || "Elegir archivo"}
+                    </span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".txt,.md,.markdown,.log,.json,.xml,.html,.css,.js,.ts,.py,.rb,.go,.java,.yaml,.yml,.sh,.sql,.ini,.tsv,.csv,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.webp,.bmp,.tiff,.tif"
+                      onChange={(e) =>
+                        onNodeFileSelect?.(e.target.files?.[0] ?? null)
+                      }
+                    />
+                  </label>
+                </div>
+              );
+            }
+
             const isConnected = connectedInputs[port.key];
             return (
               <div key={port.key} className="relative flex items-center gap-2">
@@ -87,6 +121,12 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
                   position={Position.Left}
                   id={port.key}
                   className="!w-2 !h-2 !border-2 !bg-white !border-gray-400"
+                  style={{
+                    position: "relative",
+                    top: "auto",
+                    left: "auto",
+                    transform: "none",
+                  }}
                 />
                 {editableTypes.has(port.type) ? (
                   <div className="flex-1">
@@ -138,6 +178,12 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
                 position={Position.Right}
                 id={port.key}
                 className="!w-2 !h-2 !border-2 !bg-white !border-gray-400"
+                style={{
+                  position: "relative",
+                  top: "auto",
+                  right: "auto",
+                  transform: "none",
+                }}
               />
             </div>
           ))}
@@ -164,8 +210,15 @@ function EditorInner({
   const [nodeDefs, setNodeDefs] = useState<NodeDef[]>([]);
   const [nodeInputs, setNodeInputs] = useState<
     Record<string, Record<string, unknown>>
-  >({});
+  >(() => {
+    const seed: Record<string, Record<string, unknown>> = {};
+    for (const node of initialNodes) {
+      seed[String(node.id)] = { ...(node.inputs || {}) };
+    }
+    return seed;
+  });
   const [execSidebarOpen, setExecSidebarOpen] = useState(false);
+  const [nodeFiles, setNodeFiles] = useState<Record<string, File | null>>({});
   const dragDataRef = useRef<{
     fnKey: string;
     defName: string;
@@ -208,6 +261,13 @@ function EditorInner({
             nodeDef: def,
             inputValues: nodeInputs[String(n.id)] || {},
             connectedInputs: connectedInputs[String(n.id)] || {},
+            uploadedFileName: nodeFiles[String(n.id)]?.name ?? null,
+            onNodeFileSelect: (file: File | null) => {
+              setNodeFiles((prev) => ({
+                ...prev,
+                [String(n.id)]: file ?? null,
+              }));
+            },
             onInputChange: (key: string, value: unknown) => {
               setNodeInputs((prev) => ({
                 ...prev,
@@ -217,7 +277,7 @@ function EditorInner({
           },
         };
       }),
-    [initialNodes, nodeDefMap, nodeInputs, connectedInputs],
+    [initialNodes, nodeDefMap, nodeInputs, connectedInputs, nodeFiles],
   );
 
   const rfEdges: Edge[] = useMemo(
@@ -255,6 +315,8 @@ function EditorInner({
             label: rfNode.data.label,
             fnKey: rfNode.data.fnKey,
             nodeDef: rfNode.data.nodeDef,
+            uploadedFileName: rfNode.data.uploadedFileName,
+            onNodeFileSelect: rfNode.data.onNodeFileSelect,
           },
         };
       }),
@@ -269,6 +331,18 @@ function EditorInner({
       })),
     );
   }, [nodeInputs, setNodes]);
+
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((n) => ({
+        ...n,
+        data: {
+          ...n.data,
+          uploadedFileName: nodeFiles[n.id]?.name ?? null,
+        },
+      })),
+    );
+  }, [nodeFiles, setNodes]);
 
   useEffect(() => {
     const connected: Record<string, Record<string, boolean>> = {};
@@ -351,6 +425,13 @@ function EditorInner({
             nodeDef: def,
             inputValues: defaultInputs,
             connectedInputs: {},
+            uploadedFileName: null,
+            onNodeFileSelect: (file: File | null) => {
+              setNodeFiles((prev) => ({
+                ...prev,
+                [String(newId)]: file ?? null,
+              }));
+            },
             onInputChange: (key: string, value: unknown) => {
               setNodeInputs((prev) => ({
                 ...prev,
@@ -366,18 +447,50 @@ function EditorInner({
     [reactFlowInstance, nodes, nodeDefMap, setNodes, setNodeInputs],
   );
 
+  const fileUploadDefIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const def of nodeDefs) {
+      if (def.fnKey === "file.upload") {
+        ids.add(def._id);
+      }
+    }
+    return ids;
+  }, [nodeDefs]);
+
+  const hasFileUpload = useMemo(
+    () =>
+      nodes.some(
+        (n) =>
+          fileUploadDefIds.has(n.data.nodeDefinitionId as string) ||
+          n.data.fnKey === "file.upload",
+      ),
+    [nodes, fileUploadDefIds],
+  );
+
   const handleSave = () => {
-    const savedNodes: WorkflowNode[] = nodes.map((n) => ({
-      id: parseInt(n.id),
-      nodeDefinitionId: (n.data.nodeDefinitionId as string) || "",
-      name: (n.data.label as string) || "",
-      disabled: false,
-      x: n.position.x,
-      y: n.position.y,
-      w: 200,
-      h: 80,
-      inputs: nodeInputs[n.id] || {},
-    }));
+    const savedNodes: WorkflowNode[] = nodes.map((n) => {
+      const def = n.data.nodeDef as NodeDef | undefined;
+      const fileInputKeys = new Set(
+        (def?.inputs ?? [])
+          .filter((input) => input.type === "file")
+          .map((input) => input.key),
+      );
+      const inputs = { ...(nodeInputs[n.id] || {}) };
+      for (const key of fileInputKeys) {
+        delete inputs[key];
+      }
+      return {
+        id: parseInt(n.id),
+        nodeDefinitionId: (n.data.nodeDefinitionId as string) || "",
+        name: (n.data.label as string) || "",
+        disabled: false,
+        x: n.position.x,
+        y: n.position.y,
+        w: 200,
+        h: 80,
+        inputs,
+      };
+    });
 
     const savedEdges: WorkflowEdge[] = edges.map((e) => ({
       sourceNodeId: parseInt(e.source),
@@ -427,7 +540,23 @@ function EditorInner({
           </button>
           <button
             onClick={() => {
-              onRun();
+              if (hasFileUpload) {
+                const uploadNode = nodes.find(
+                  (n) =>
+                    fileUploadDefIds.has(n.data.nodeDefinitionId as string) ||
+                    n.data.fnKey === "file.upload",
+                );
+                const file = uploadNode ? nodeFiles[uploadNode.id] : undefined;
+                if (!file) {
+                  alert(
+                    "Elegí un archivo en el nodo File Upload antes de ejecutar.",
+                  );
+                  return;
+                }
+                onRun(file);
+              } else {
+                onRun();
+              }
               setExecSidebarOpen(true);
             }}
             className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition cursor-pointer"

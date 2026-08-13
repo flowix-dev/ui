@@ -1,8 +1,11 @@
-import type { SVGProps } from "react";
+import type { ImgHTMLAttributes, SVGProps } from "react";
 
 type IconProps = SVGProps<SVGSVGElement>;
 
-export function FlowixLogo({ className, ...props }: IconProps) {
+export function FlowixLogo({
+  className,
+  ...props
+}: ImgHTMLAttributes<HTMLImageElement>) {
   return (
     <img
       className={className}

@@ -30,8 +30,8 @@ export default function WorkflowEditorPage() {
     dispatch(saveWorkflow({ id: params.id as string, nodes, edges }));
   };
 
-  const handleRun = () => {
-    dispatch(runWorkflow(params.id as string));
+  const handleRun = (file?: File) => {
+    dispatch(runWorkflow({ workflowId: params.id as string, file }));
   };
 
   if (loading && !wf) {
@@ -74,6 +74,7 @@ export default function WorkflowEditorPage() {
           </div>
           <div className="flex-1">
             <WorkflowEditor
+              key={wf._id}
               workflowId={wf._id}
               initialNodes={wf.nodes}
               initialEdges={wf.edges}

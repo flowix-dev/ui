@@ -69,7 +69,7 @@ export default function ExecutionDetailPage() {
   return (
     <AuthGuard>
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 md:pb-8">
         <button
           onClick={() => router.back()}
           className="text-sm text-blue-600 hover:underline mb-4 inline-block cursor-pointer"

@@ -41,7 +41,7 @@ export default function ExecutionsPage() {
   return (
     <AuthGuard>
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 md:pb-8">
         <h1 className="text-2xl font-bold mb-6">Execution History</h1>
 
         {loading ? (

@@ -28,8 +28,11 @@ const initialState: ExecutionState = {
 
 export const runWorkflow = createAsyncThunk(
   "execution/run",
-  async (workflowId: string, { dispatch }) => {
-    const { data } = await workflowApi.run(workflowId);
+  async (
+    { workflowId, file }: { workflowId: string; file?: File },
+    { dispatch },
+  ) => {
+    const { data } = await workflowApi.run(workflowId, file);
     const execId = data.execution._id;
     dispatch(fetchExecution(execId));
     return data.execution;
@@ -131,6 +134,9 @@ const executionSlice = createSlice({
       for (const ne of action.payload.nodeExecutions || []) {
         state.nodeStatuses[ne.nodeId] = ne.status;
       }
+      state.running =
+        action.payload.status === "running" ||
+        action.payload.status === "pending";
     });
     builder.addCase(fetchExecution.rejected, (state, action) => {
       state.loading = false;

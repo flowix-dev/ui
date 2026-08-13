@@ -59,7 +59,16 @@ export const authApi = {
 };
 
 export const workflowApi = {
-  run: (workflowId: string) => api.post(`/workflows/${workflowId}/run`),
+  run: (workflowId: string, file?: File) => {
+    if (!file) {
+      return api.post(`/workflows/${workflowId}/run`);
+    }
+    const form = new FormData();
+    form.append("file", file);
+    return api.post(`/workflows/${workflowId}/run`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
   getExecution: (executionId: string) => api.get(`/executions/${executionId}`),
   getWorkflowExecutions: (workflowId: string, page = 1, limit = 20) =>
     api.get(`/workflows/${workflowId}/executions?page=${page}&limit=${limit}`),
@@ -80,4 +89,33 @@ export const workflowCrudApi = {
 
 export const nodeDefinitionsApi = {
   list: () => api.get("/node-definitions"),
+};
+
+export const modelApi = {
+  list: () => api.get("/models"),
+};
+
+export const usersApi = {
+  savePuterToken: (token: string) =>
+    api.put("/users/me/puter-token", { token }),
+  getPuterUsage: () => api.get("/users/me/puter-usage"),
+};
+
+export const chatApi = {
+  list: () => api.get("/chats"),
+  create: (data: { title?: string; model?: string }) =>
+    api.post("/chats", data),
+  get: (chatId: string) => api.get(`/chats/${chatId}`),
+  update: (chatId: string, data: { title?: string; model?: string }) =>
+    api.patch(`/chats/${chatId}`, data),
+  delete: (chatId: string) => api.delete(`/chats/${chatId}`),
+  getMessages: (chatId: string) => api.get(`/chats/${chatId}/messages`),
+  listFiles: (chatId: string) => api.get(`/chats/${chatId}/files`),
+  uploadFile: (chatId: string, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return api.post(`/chats/${chatId}/files`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 };

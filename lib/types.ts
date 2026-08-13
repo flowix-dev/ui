@@ -4,7 +4,6 @@ export interface User {
   lastName: string;
   email: string;
   role: "user" | "admin";
-  credits: number;
 }
 
 export interface WorkflowNode {
@@ -82,4 +81,60 @@ export interface RegisterCredentials {
   lastName: string;
   email: string;
   password: string;
+}
+
+export interface ChatModel {
+  id: string;
+  name: string;
+  provider: "aws-bedrock" | "puter";
+  modelId: string;
+  description: string;
+}
+
+export interface Chat {
+  _id: string;
+  authorId: string;
+  title: string;
+  model: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatAttachment {
+  name: string;
+  type: string;
+  size: number;
+  s3Key: string;
+}
+
+export interface ToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+  output?: unknown;
+  error?: string;
+  status: "completed" | "failed";
+}
+
+export interface ChatMessage {
+  _id: string;
+  chatId: string;
+  authorId: string;
+  role: "user" | "assistant";
+  content: string;
+  attachments: ChatAttachment[];
+  toolCalls: ToolCall[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatFile {
+  _id: string;
+  chatId: string;
+  authorId: string;
+  name: string;
+  type: string;
+  size: number;
+  s3Key: string;
+  createdAt: string;
 }

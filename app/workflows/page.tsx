@@ -35,7 +35,7 @@ export default function WorkflowsPage() {
   return (
     <AuthGuard>
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 md:pb-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Workflows</h1>
           <button
