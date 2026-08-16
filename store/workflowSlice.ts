@@ -6,6 +6,7 @@ interface Workflow {
   _id: string;
   name: string;
   authorId: string;
+  parentWorkflowId?: string;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
   createdAt: string;
@@ -46,8 +47,11 @@ export const fetchWorkflow = createAsyncThunk(
 
 export const createWorkflow = createAsyncThunk(
   "workflow/create",
-  async (name: string) => {
-    const { data } = await workflowCrudApi.create(name);
+  async (payload: { name: string; parentWorkflowId?: string }) => {
+    const { data } = await workflowCrudApi.create(
+      payload.name,
+      payload.parentWorkflowId,
+    );
     return data.workflow;
   },
 );

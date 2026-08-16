@@ -19,7 +19,7 @@ export default function DeviceMockup() {
               </span>
               <span className="ml-2 hidden items-center gap-2 rounded-md bg-surface-strong px-3 py-1 font-mono text-xs text-body sm:flex">
                 <span className="h-1.5 w-1.5 rounded-full bg-semantic-success" />
-                app.flowpath.dev/workflows
+                app.flowix.dev/workflows
               </span>
             </div>
             <WorkflowEditorMock />

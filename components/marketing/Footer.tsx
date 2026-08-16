@@ -53,7 +53,7 @@ export default function Footer() {
                 <FlowixLogo />
               </span>
               <span className="text-display text-base font-semibold text-ink">
-                Flowpath
+                Flowix
               </span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-body">
@@ -83,8 +83,7 @@ export default function Footer() {
 
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-hairline pt-8 sm:flex-row">
           <p className="text-xs text-muted">
-            © {new Date().getFullYear()} Flowpath. Todos los derechos
-            reservados.
+            © {new Date().getFullYear()} Flowix. Todos los derechos reservados.
           </p>
           <p className="text-xs text-muted">
             Hecho para equipos que construyen rápido.

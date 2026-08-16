@@ -16,7 +16,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Flowpath — Automatización, asistentes y chat con IA",
+  title: "Flowix — Automatización, asistentes y chat con IA",
   description:
     "Crea workflows de automatización, asistentes y chatbots, y chatea con los modelos más avanzados desde una sola plataforma.",
 };

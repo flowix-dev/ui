@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import AuthGuard from "@/components/layout/AuthGuard";
@@ -14,6 +14,7 @@ export default function WorkflowEditorPage() {
   const params = useParams();
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const saveRef = useRef<(() => void) | null>(null);
   const {
     currentWorkflow: wf,
     loading,
@@ -70,7 +71,7 @@ export default function WorkflowEditorPage() {
     <AuthGuard>
       <div className="flex flex-col h-screen">
         <Navbar />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
           <div className="bg-surface-card shrink-0 border-b border-hairline-strong px-6 py-3">
             <div className="flex items-center gap-3">
               <button
@@ -79,20 +80,33 @@ export default function WorkflowEditorPage() {
               >
                 ← Workflows
               </button>
+              {wf.parentWorkflowId && (
+                <button
+                  onClick={() => {
+                    saveRef.current?.();
+                    router.push(`/workflows/${wf.parentWorkflowId}`);
+                  }}
+                  className="text-sm text-link hover:underline cursor-pointer"
+                >
+                  ← Volver al workflow padre
+                </button>
+              )}
               <h1 className="text-display text-lg text-ink">{wf.name}</h1>
             </div>
           </div>
-          <div className="flex-1">
-            <WorkflowEditor
-              key={wf._id}
-              workflowId={wf._id}
-              initialNodes={wf.nodes}
-              initialEdges={wf.edges}
-              onSave={handleSave}
-              onRun={handleRun}
-              saving={saving}
-            />
-          </div>
+          <WorkflowEditor
+            key={wf._id}
+            workflowId={wf._id}
+            initialNodes={wf.nodes}
+            initialEdges={wf.edges}
+            parentWorkflowId={wf.parentWorkflowId}
+            onRegisterSave={(save) => {
+              saveRef.current = save;
+            }}
+            onSave={handleSave}
+            onRun={handleRun}
+            saving={saving}
+          />
         </div>
       </div>
     </AuthGuard>

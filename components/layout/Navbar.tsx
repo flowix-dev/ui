@@ -26,7 +26,7 @@ export default function Navbar() {
               href="/dashboard"
               className="text-display text-base font-semibold text-ink"
             >
-              Flowpath
+              Flowix
             </Link>
             <div className="hidden items-center gap-6 md:flex">
               <Link

@@ -24,7 +24,7 @@ export default function WorkflowsPage() {
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
-    const result = await dispatch(createWorkflow(newName.trim()));
+    const result = await dispatch(createWorkflow({ name: newName.trim() }));
     if (createWorkflow.fulfilled.match(result)) {
       setShowCreate(false);
       setNewName("");

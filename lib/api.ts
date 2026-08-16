@@ -79,7 +79,8 @@ export const workflowApi = {
 export const workflowCrudApi = {
   list: () => api.get("/workflows"),
   get: (id: string) => api.get(`/workflows/${id}`),
-  create: (name: string) => api.post("/workflows", { name }),
+  create: (name: string, parentWorkflowId?: string) =>
+    api.post("/workflows", { name, parentWorkflowId }),
   update: (
     id: string,
     data: { name?: string; nodes?: unknown[]; edges?: unknown[] },

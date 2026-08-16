@@ -4,25 +4,15 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import AuthGuard from "@/components/layout/AuthGuard";
-import { usersApi } from "@/lib/api";
 import { connectPuter, getPuterUsername, isPuterConnected } from "@/lib/puter";
 
-const MICROCENTS_PER_DOLLAR = 100_000_000;
 const PUTER_BILLING_URL = "https://puter.com/dashboard#billing";
 const PUTER_USAGE_URL = "https://puter.com/dashboard#usage";
-
-function formatDollars(microcents: number): string {
-  return `$${(microcents / MICROCENTS_PER_DOLLAR).toFixed(2)}`;
-}
 
 export default function ProfilePage() {
   const router = useRouter();
   const [connected, setConnected] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
-  const [usage, setUsage] = useState<{
-    remaining?: number;
-    allowance?: number;
-  } | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
@@ -30,17 +20,6 @@ export default function ProfilePage() {
       setConnected(ok);
       setUsername(getPuterUsername());
     });
-    usersApi
-      .getPuterUsage()
-      .then(({ data }) => {
-        setUsage({
-          remaining: data.usage?.allowanceInfo?.remaining,
-          allowance: data.usage?.allowanceInfo?.monthUsageAllowance,
-        });
-      })
-      .catch(() => {
-        setUsage(null);
-      });
   }, []);
 
   useEffect(() => {
@@ -97,27 +76,11 @@ export default function ProfilePage() {
           </p>
 
           {connected ? (
-            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-1">
               <div className="rounded-md border border-hairline bg-canvas-soft p-4">
                 <p className="text-xs text-muted">Usuario</p>
                 <p className="mt-1 text-sm font-medium text-ink">
                   {username ?? "Puter"}
-                </p>
-              </div>
-              <div className="rounded-md border border-hairline bg-canvas-soft p-4">
-                <p className="text-xs text-muted">Saldo restante</p>
-                <p className="mt-1 text-sm font-medium text-ink">
-                  {usage?.remaining != null
-                    ? formatDollars(usage.remaining)
-                    : "—"}
-                </p>
-              </div>
-              <div className="rounded-md border border-hairline bg-canvas-soft p-4">
-                <p className="text-xs text-muted">Cuota mensual</p>
-                <p className="mt-1 text-sm font-medium text-ink">
-                  {usage?.allowance != null
-                    ? formatDollars(usage.allowance)
-                    : "—"}
                 </p>
               </div>
             </div>

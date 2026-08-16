@@ -20,16 +20,24 @@ import ReactFlow, {
   ReactFlowProvider,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import { useRouter } from "next/navigation";
 import { WorkflowNode, WorkflowEdge } from "@/lib/types";
-import api, { nodeDefinitionsApi } from "@/lib/api";
+import api, {
+  nodeDefinitionsApi,
+  workflowCrudApi,
+  assistantsApi,
+} from "@/lib/api";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { fetchExecution } from "@/store/executionSlice";
 import ExecutionSidebar from "./ExecutionSidebar";
+import WorkflowChat from "./WorkflowChat";
 
 interface WorkflowEditorProps {
   workflowId: string;
   initialNodes: WorkflowNode[];
   initialEdges: WorkflowEdge[];
+  parentWorkflowId?: string;
+  onRegisterSave?: (save: () => void) => void;
   onSave: (nodes: WorkflowNode[], edges: WorkflowEdge[]) => void;
   onRun: (
     file: File | undefined,
@@ -39,11 +47,13 @@ interface WorkflowEditorProps {
   saving: boolean;
 }
 
+type SelectOption = string | { value: string; label: string };
+
 type PortDef = {
   key: string;
   type: string;
   input?: string;
-  options?: string[];
+  options?: SelectOption[];
   required?: boolean;
   defaultValue?: unknown;
   description?: string;
@@ -64,7 +74,8 @@ const TYPE_LABELS: Record<string, string> = {
   number: "number",
   boolean: "boolean",
   object: "object",
-  array: "array",
+  "number[]": "number[]",
+  "any[]": "any[]",
   json: "json",
   image: "image",
   file: "file",
@@ -79,6 +90,10 @@ function TypeBadge({ type }: { type: string }) {
       {TYPE_LABELS[type] ?? type}
     </span>
   );
+}
+
+function isArrayType(type: string): boolean {
+  return type === "number[]" || type === "any[]";
 }
 
 function isTypeCompatible(
@@ -99,17 +114,74 @@ function isTypeCompatible(
   }
   if (
     sourceType === "json" &&
-    (targetType === "object" || targetType === "array")
+    (targetType === "object" || isArrayType(targetType))
   ) {
     return true;
   }
   if (
-    (sourceType === "object" || sourceType === "array") &&
+    (sourceType === "object" || isArrayType(sourceType)) &&
     targetType === "json"
   ) {
     return true;
   }
+  if (isArrayType(sourceType)) {
+    return targetType !== "file" && targetType !== "credentials";
+  }
+  if (isArrayType(targetType)) {
+    return sourceType === "string";
+  }
   return false;
+}
+
+function parseCaseList(text: string): string[] {
+  const values: string[] = [];
+  let current = "";
+  let quote: string | null = null;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (quote) {
+      if (char === quote) {
+        quote = null;
+      } else {
+        current += char;
+      }
+    } else if (char === '"' || char === "'") {
+      quote = char;
+    } else if (char === ",") {
+      values.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  values.push(current);
+
+  return values.map((item) => item.trim()).filter((item) => item !== "");
+}
+
+function parseSwitchCases(raw: unknown): unknown[] {
+  if (Array.isArray(raw)) {
+    return raw;
+  }
+  if (typeof raw !== "string") {
+    return [];
+  }
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return [];
+  }
+  if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch {
+      /* fall through to CSV parsing */
+    }
+  }
+  return parseCaseList(trimmed);
 }
 
 function CredentialsButton({ provider }: { provider: string }) {
@@ -213,11 +285,15 @@ function renderWidget(
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded border border-hairline bg-surface-card px-1 py-0.5 text-xs text-ink"
       >
-        {(port.options ?? []).map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
+        {(port.options ?? []).map((option) => {
+          const value = typeof option === "string" ? option : option.value;
+          const label = typeof option === "string" ? option : option.label;
+          return (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          );
+        })}
       </select>
     );
   }
@@ -255,6 +331,14 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
   const nodeDef = data.nodeDef as NodeDef | undefined;
   const fnKey = data.fnKey as string;
   const inputValues = (data.inputValues as Record<string, unknown>) || {};
+  const modelOptions = useMemo(
+    () => (data.modelOptions as SelectOption[]) || [],
+    [data.modelOptions],
+  );
+  const assistantOptions = useMemo(
+    () => (data.assistantOptions as SelectOption[]) || [],
+    [data.assistantOptions],
+  );
   const connectedInputs =
     (data.connectedInputs as Record<string, boolean>) || {};
   const uploadedFileName = data.uploadedFileName as string | null | undefined;
@@ -266,13 +350,167 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
   ) => void;
 
   const inputPorts = useMemo(() => nodeDef?.inputs || [], [nodeDef]);
-  const outputPorts = useMemo(() => nodeDef?.outputs || [], [nodeDef]);
+  const visibleInputPorts = useMemo(() => {
+    const keysByNode: Record<string, Record<string, string[]>> = {
+      "array.operations": {
+        push: ["array", "value"],
+        join: ["array", "separator"],
+        filter: ["array", "expression"],
+        map: ["array", "expression"],
+        concat: ["array", "value"],
+        slice: ["array", "start", "end"],
+      },
+      "text.operations": {
+        split: ["text", "separator"],
+        replace: ["text", "search", "replacement"],
+        slice: ["text", "start", "end"],
+        upper: ["text"],
+        lower: ["text"],
+        trim: ["text"],
+      },
+      "object.operations": {
+        merge: ["object1", "object2"],
+        set: ["object", "key", "value"],
+      },
+      "google.docs": {
+        create: ["credentials", "title", "content"],
+        list: ["credentials"],
+        read: ["credentials", "documentId"],
+        update: ["credentials", "documentId", "find", "replacement"],
+      },
+      "google.sheets": {
+        append: ["credentials", "spreadsheetId", "sheetName", "values"],
+        read: ["credentials", "spreadsheetId", "sheetName", "range"],
+        list: ["credentials"],
+        update: [
+          "credentials",
+          "spreadsheetId",
+          "sheetName",
+          "range",
+          "values",
+        ],
+      },
+      "google.slides": {
+        create: ["credentials", "title"],
+        list: ["credentials"],
+        read: ["credentials", "presentationId"],
+        update: ["credentials", "presentationId", "title"],
+      },
+    };
+    const keysByOperation = keysByNode[fnKey];
+    if (!keysByOperation) {
+      return inputPorts;
+    }
+    const keys =
+      keysByOperation[String(inputValues.operation ?? "")] ??
+      inputPorts.map((port) => port.key);
+    return inputPorts.filter(
+      (port) =>
+        keys.includes(port.key) ||
+        port.key === "operation" ||
+        port.key === "mode",
+    );
+  }, [fnKey, inputPorts, inputValues.operation]);
+  const switchCases = useMemo(() => {
+    if (fnKey !== "switch") return [];
+    return parseSwitchCases(inputValues.cases);
+  }, [fnKey, inputValues.cases]);
+  const outputPorts = useMemo(() => {
+    if (fnKey === "switch") {
+      return [
+        ...switchCases.map((_, i) => ({ key: `case${i + 1}`, type: "any" })),
+        { key: "default", type: "any" },
+      ];
+    }
+    return nodeDef?.outputs || [];
+  }, [nodeDef, fnKey, switchCases]);
+  const toCount = (raw: unknown, fallback: number) => {
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : fallback;
+  };
+  const dynamicPorts = useMemo(() => {
+    const makePort = (key: string): PortDef => ({
+      key,
+      type: "any",
+      input: "none",
+    });
+    if (fnKey === "run.workflow") {
+      const inputCount = toCount(inputValues.inputCount, 1);
+      const outputCount = toCount(inputValues.outputCount, 1);
+      return {
+        inputs: Array.from({ length: inputCount }, (_, i) =>
+          makePort(`input${i + 1}`),
+        ),
+        outputs: Array.from({ length: outputCount }, (_, i) =>
+          makePort(`output${i + 1}`),
+        ),
+      };
+    }
+    if (fnKey === "get.inputs") {
+      const count = toCount(inputValues.count, 1);
+      return {
+        inputs: [],
+        outputs: Array.from({ length: count }, (_, i) =>
+          makePort(`input${i + 1}`),
+        ),
+      };
+    }
+    if (fnKey === "send.outputs") {
+      const count = toCount(inputValues.count, 1);
+      return {
+        inputs: Array.from({ length: count }, (_, i) =>
+          makePort(`output${i + 1}`),
+        ),
+        outputs: [],
+      };
+    }
+    return { inputs: [] as PortDef[], outputs: [] as PortDef[] };
+  }, [
+    fnKey,
+    inputValues.inputCount,
+    inputValues.outputCount,
+    inputValues.count,
+  ]);
+  const allInputPorts = useMemo(
+    () => [...visibleInputPorts, ...dynamicPorts.inputs],
+    [visibleInputPorts, dynamicPorts.inputs],
+  );
+  const allOutputPorts = useMemo(
+    () => [...outputPorts, ...dynamicPorts.outputs],
+    [outputPorts, dynamicPorts.outputs],
+  );
+  const effectiveInputPorts = useMemo(() => {
+    if (fnKey !== "ai.chat" && fnKey !== "ai.assistant") {
+      return allInputPorts;
+    }
+    return allInputPorts.map((port) => {
+      if (
+        fnKey === "ai.chat" &&
+        port.key === "model" &&
+        modelOptions.length > 0
+      ) {
+        return { ...port, options: modelOptions };
+      }
+      if (
+        fnKey === "ai.assistant" &&
+        port.key === "assistantId" &&
+        assistantOptions.length > 0
+      ) {
+        return { ...port, options: assistantOptions };
+      }
+      return port;
+    });
+  }, [allInputPorts, fnKey, modelOptions, assistantOptions]);
   const provider =
     fnKey === "outlook.send"
       ? "outlook"
       : fnKey === "gmail.send"
         ? "gmail"
-        : null;
+        : fnKey === "google.sheets" ||
+            fnKey === "google.docs" ||
+            fnKey === "google.slides"
+          ? "google"
+          : null;
 
   const hasHandle = (port: PortDef) =>
     port.input !== "file" && port.input !== "credentials";
@@ -285,9 +523,9 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
     >
       <div className="mb-2 text-sm font-semibold text-ink">{label}</div>
 
-      {inputPorts.length > 0 && (
+      {effectiveInputPorts.length > 0 && (
         <div className="mb-2 space-y-1">
-          {inputPorts.map((port) => {
+          {effectiveInputPorts.map((port) => {
             if (port.input === "file") {
               return (
                 <div key={port.key} className="mb-1">
@@ -371,9 +609,9 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
         </div>
       )}
 
-      {outputPorts.length > 0 && (
+      {allOutputPorts.length > 0 && (
         <div className="space-y-1">
-          {outputPorts.map((port) => (
+          {allOutputPorts.map((port) => (
             <div
               key={port.key}
               className="relative flex items-center justify-end gap-2"
@@ -410,13 +648,20 @@ function EditorInner({
   workflowId,
   initialNodes,
   initialEdges,
+  parentWorkflowId,
+  onRegisterSave,
   onSave,
   onRun,
   saving,
 }: WorkflowEditorProps) {
+  const router = useRouter();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useReactFlow();
   const [nodeDefs, setNodeDefs] = useState<NodeDef[]>([]);
+  const [models, setModels] = useState<Array<{ id: string; name: string }>>([]);
+  const [assistants, setAssistants] = useState<
+    Array<{ _id: string; name: string }>
+  >([]);
   const [nodeInputs, setNodeInputs] = useState<
     Record<string, Record<string, unknown>>
   >(() => {
@@ -427,6 +672,7 @@ function EditorInner({
     return seed;
   });
   const [execSidebarOpen, setExecSidebarOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [nodeFiles, setNodeFiles] = useState<Record<string, File | null>>({});
   const [nodeSearch, setNodeSearch] = useState("");
   const [closedCategories, setClosedCategories] = useState<Set<string>>(
@@ -440,18 +686,27 @@ function EditorInner({
   const { running, currentExecution } = useAppSelector((s) => s.execution);
   const dispatch = useAppDispatch();
 
+  const visibleNodeDefs = useMemo(() => {
+    if (parentWorkflowId) {
+      return nodeDefs;
+    }
+    return nodeDefs.filter(
+      (def) => def.fnKey !== "get.inputs" && def.fnKey !== "send.outputs",
+    );
+  }, [nodeDefs, parentWorkflowId]);
+
   const categories = useMemo(() => {
     const set = new Set<string>();
-    for (const def of nodeDefs) {
+    for (const def of visibleNodeDefs) {
       set.add(def.category);
     }
     return [...set].sort();
-  }, [nodeDefs]);
+  }, [visibleNodeDefs]);
 
   const filteredByCategory = useCallback(
     (category: string) => {
       const query = nodeSearch.trim().toLowerCase();
-      return nodeDefs.filter(
+      return visibleNodeDefs.filter(
         (def) =>
           def.category === category &&
           (query === "" ||
@@ -459,7 +714,7 @@ function EditorInner({
             def.fnKey.toLowerCase().includes(query)),
       );
     },
-    [nodeDefs, nodeSearch],
+    [visibleNodeDefs, nodeSearch],
   );
 
   const nodeDefMap = useMemo(() => {
@@ -481,6 +736,19 @@ function EditorInner({
     return map;
   }, [initialEdges]);
 
+  const modelOptions = useMemo(
+    () => models.map((model) => ({ value: model.id, label: model.name })),
+    [models],
+  );
+  const assistantOptions = useMemo(
+    () =>
+      assistants.map((assistant) => ({
+        value: assistant._id,
+        label: assistant.name,
+      })),
+    [assistants],
+  );
+
   const rfNodes: Node[] = useMemo(
     () =>
       initialNodes.map((n) => {
@@ -497,6 +765,8 @@ function EditorInner({
             nodeDef: def,
             inputValues: nodeInputs[String(n.id)] || {},
             connectedInputs: connectedInputs[String(n.id)] || {},
+            modelOptions,
+            assistantOptions,
             uploadedFileName: nodeFiles[String(n.id)]?.name ?? null,
             onNodeFileSelect: (file: File | null) => {
               setNodeFiles((prev) => ({
@@ -513,7 +783,15 @@ function EditorInner({
           },
         };
       }),
-    [initialNodes, nodeDefMap, nodeInputs, connectedInputs, nodeFiles],
+    [
+      initialNodes,
+      nodeDefMap,
+      nodeInputs,
+      connectedInputs,
+      nodeFiles,
+      modelOptions,
+      assistantOptions,
+    ],
   );
 
   const rfEdges: Edge[] = useMemo(
@@ -547,6 +825,14 @@ function EditorInner({
     nodeDefinitionsApi.list().then(({ data }) => {
       setNodeDefs(data.definitions);
     });
+    api
+      .get("/models")
+      .then(({ data }) => setModels(data.models ?? []))
+      .catch(() => {});
+    assistantsApi
+      .list()
+      .then(({ data }) => setAssistants(data.assistants ?? []))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -637,6 +923,22 @@ function EditorInner({
         return undefined;
       }
       const def = nodeDefMap.get(node.data.nodeDefinitionId as string);
+      if (
+        def?.fnKey === "run.workflow" ||
+        def?.fnKey === "get.inputs" ||
+        def?.fnKey === "send.outputs"
+      ) {
+        if (/^input\d+$/.test(portKey) || /^output\d+$/.test(portKey)) {
+          return "any";
+        }
+      }
+      if (
+        kind === "output" &&
+        def?.fnKey === "switch" &&
+        (portKey === "default" || /^case\d+$/.test(portKey))
+      ) {
+        return "any";
+      }
       const ports = kind === "input" ? def?.inputs : def?.outputs;
       return ports?.find((p) => p.key === portKey)?.type;
     },
@@ -729,6 +1031,8 @@ function EditorInner({
             nodeDef: def,
             inputValues: defaultInputs,
             connectedInputs: {},
+            modelOptions,
+            assistantOptions,
             uploadedFileName: null,
             onNodeFileSelect: (file: File | null) => {
               setNodeFiles((prev) => ({
@@ -748,7 +1052,15 @@ function EditorInner({
 
       dragDataRef.current = null;
     },
-    [reactFlowInstance, nodes, nodeDefMap, setNodes, setNodeInputs],
+    [
+      reactFlowInstance,
+      nodes,
+      nodeDefMap,
+      setNodes,
+      setNodeInputs,
+      modelOptions,
+      assistantOptions,
+    ],
   );
 
   const fileUploadDefIds = useMemo(() => {
@@ -771,122 +1083,196 @@ function EditorInner({
     [nodes, fileUploadDefIds],
   );
 
-  const buildSavedState = useCallback(() => {
-    const savedNodes: WorkflowNode[] = nodes.map((n) => {
-      const def = n.data.nodeDef as NodeDef | undefined;
-      const fileInputKeys = new Set(
-        (def?.inputs ?? [])
-          .filter((input) => input.type === "file")
-          .map((input) => input.key),
-      );
-      const inputs = { ...(nodeInputs[n.id] || {}) };
-      for (const key of fileInputKeys) {
-        delete inputs[key];
-      }
-      return {
-        id: parseInt(n.id),
-        nodeDefinitionId: (n.data.nodeDefinitionId as string) || "",
-        name: (n.data.label as string) || "",
-        disabled: false,
-        x: n.position.x,
-        y: n.position.y,
-        w: 200,
-        h: 80,
-        inputs,
-      };
-    });
+  const buildSavedState = useCallback(
+    (inputOverrides: Record<string, Record<string, unknown>> = {}) => {
+      const savedNodes: WorkflowNode[] = nodes.map((n) => {
+        const def = n.data.nodeDef as NodeDef | undefined;
+        const fileInputKeys = new Set(
+          (def?.inputs ?? [])
+            .filter((input) => input.type === "file")
+            .map((input) => input.key),
+        );
+        const inputs = {
+          ...(inputOverrides[n.id] ?? nodeInputs[n.id] ?? {}),
+        };
+        for (const key of fileInputKeys) {
+          delete inputs[key];
+        }
+        return {
+          id: parseInt(n.id),
+          nodeDefinitionId: (n.data.nodeDefinitionId as string) || "",
+          name: (n.data.label as string) || "",
+          disabled: false,
+          x: n.position.x,
+          y: n.position.y,
+          w: 200,
+          h: 80,
+          inputs,
+        };
+      });
 
-    const savedEdges: WorkflowEdge[] = edges.map((e) => ({
-      sourceNodeId: parseInt(e.source),
-      sourceKey: e.sourceHandle || "default",
-      targetNodeId: parseInt(e.target),
-      targetKey: e.targetHandle || "default",
-    }));
+      const savedEdges: WorkflowEdge[] = edges.map((e) => ({
+        sourceNodeId: parseInt(e.source),
+        sourceKey: e.sourceHandle || "default",
+        targetNodeId: parseInt(e.target),
+        targetKey: e.targetHandle || "default",
+      }));
 
-    return { savedNodes, savedEdges };
-  }, [nodes, edges, nodeInputs]);
+      return { savedNodes, savedEdges };
+    },
+    [nodes, edges, nodeInputs],
+  );
 
   const handleSave = () => {
     const { savedNodes, savedEdges } = buildSavedState();
     onSave(savedNodes, savedEdges);
   };
 
-  return (
-    <div className="flex h-full">
-      <div className="w-60 shrink-0 overflow-y-auto border-r border-hairline-strong bg-canvas-soft p-4">
-        <h3 className="text-display mb-3 text-xs uppercase tracking-wide text-muted">
-          Nodos
-        </h3>
-        <input
-          type="search"
-          value={nodeSearch}
-          onChange={(e) => setNodeSearch(e.target.value)}
-          placeholder="Buscar nodos…"
-          className="mb-3 w-full rounded-md border border-hairline-strong bg-surface-card px-2.5 py-1.5 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-        />
-        {categories.map((category) => {
-          const defs = filteredByCategory(category);
-          if (defs.length === 0) {
-            return null;
-          }
-          const open = !closedCategories.has(category);
-          return (
-            <div key={category} className="mb-2">
-              <button
-                onClick={() =>
-                  setClosedCategories((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(category)) {
-                      next.delete(category);
-                    } else {
-                      next.add(category);
-                    }
-                    return next;
-                  })
-                }
-                className="flex w-full cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-left text-xs font-semibold uppercase tracking-wide text-muted transition hover:text-ink"
-              >
-                <span>{category}</span>
-                <span className="flex items-center gap-1.5">
-                  <span className="rounded bg-surface-strong px-1 font-mono text-[10px]">
-                    {defs.length}
-                  </span>
-                  <span
-                    className={`transition-transform ${open ? "rotate-90" : ""}`}
-                  >
-                    ›
-                  </span>
-                </span>
-              </button>
-              {open && (
-                <div className="mt-1 space-y-1.5">
-                  {defs.map((def) => (
-                    <div
-                      key={def._id}
-                      draggable
-                      onDragStart={(e) => {
-                        dragDataRef.current = {
-                          fnKey: def.fnKey,
-                          defName: def.name,
-                          defId: def._id,
-                        };
-                        e.dataTransfer.setData("text/plain", def.fnKey);
-                        e.dataTransfer.effectAllowed = "move";
-                      }}
-                      onDragEnd={() => {
-                        dragDataRef.current = null;
-                      }}
-                      className="cursor-grab rounded-md border border-hairline-strong bg-surface-card p-3 text-sm transition hover:border-primary/50 hover:bg-surface-strong active:cursor-grabbing"
-                    >
-                      <div className="font-medium text-ink">{def.name}</div>
-                      <div className="text-xs text-muted">{def.fnKey}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+  const saveCurrent = useCallback(() => {
+    const { savedNodes, savedEdges } = buildSavedState();
+    onSave(savedNodes, savedEdges);
+  }, [buildSavedState, onSave]);
+
+  useEffect(() => {
+    onRegisterSave?.(saveCurrent);
+  }, [onRegisterSave, saveCurrent]);
+
+  const handleNodeDoubleClick = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      const def = (node.data?.nodeDef as NodeDef | undefined) ?? null;
+      if (def?.fnKey !== "run.workflow") {
+        return;
+      }
+      const nodeId = node.id;
+      const openChild = async () => {
+        const existingId = String(nodeInputs[nodeId]?.workflowId ?? "").trim();
+        if (existingId) {
+          const { savedNodes, savedEdges } = buildSavedState();
+          onSave(savedNodes, savedEdges);
+          router.push(`/workflows/${existingId}`);
+          return;
+        }
+        try {
+          const { data } = await workflowCrudApi.create(
+            `Workflow hijo`,
+            parentWorkflowId || workflowId,
           );
-        })}
+          const childId = data.workflow._id;
+          const updatedInputs = {
+            ...(nodeInputs[nodeId] || {}),
+            workflowId: childId,
+          };
+          setNodeInputs((prev) => ({
+            ...prev,
+            [nodeId]: updatedInputs,
+          }));
+          const { savedNodes, savedEdges } = buildSavedState({
+            [nodeId]: updatedInputs,
+          });
+          onSave(savedNodes, savedEdges);
+          router.push(`/workflows/${childId}`);
+        } catch (error) {
+          alert(
+            error instanceof Error
+              ? error.message
+              : "No se pudo crear el workflow hijo",
+          );
+        }
+      };
+      openChild();
+    },
+    [
+      nodeInputs,
+      parentWorkflowId,
+      workflowId,
+      setNodeInputs,
+      router,
+      buildSavedState,
+      onSave,
+    ],
+  );
+
+  return (
+    <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="flex w-60 shrink-0 flex-col border-r border-hairline-strong bg-canvas-soft">
+        <div
+          className="min-h-0 flex-1 overflow-y-auto p-4"
+          onWheel={(e) => e.stopPropagation()}
+        >
+          <h3 className="text-display mb-3 text-xs uppercase tracking-wide text-muted">
+            Nodos
+          </h3>
+          <input
+            type="search"
+            value={nodeSearch}
+            onChange={(e) => setNodeSearch(e.target.value)}
+            placeholder="Buscar nodos…"
+            className="mb-3 w-full rounded-md border border-hairline-strong bg-surface-card px-2.5 py-1.5 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+          {categories.map((category) => {
+            const defs = filteredByCategory(category);
+            if (defs.length === 0) {
+              return null;
+            }
+            const open = !closedCategories.has(category);
+            return (
+              <div key={category} className="mb-2">
+                <button
+                  onClick={() =>
+                    setClosedCategories((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(category)) {
+                        next.delete(category);
+                      } else {
+                        next.add(category);
+                      }
+                      return next;
+                    })
+                  }
+                  className="flex w-full cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-left text-xs font-semibold uppercase tracking-wide text-muted transition hover:text-ink"
+                >
+                  <span>{category}</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="rounded bg-surface-strong px-1 font-mono text-[10px]">
+                      {defs.length}
+                    </span>
+                    <span
+                      className={`transition-transform ${open ? "rotate-90" : ""}`}
+                    >
+                      ›
+                    </span>
+                  </span>
+                </button>
+                {open && (
+                  <div className="mt-1 space-y-1.5">
+                    {defs.map((def) => (
+                      <div
+                        key={def._id}
+                        draggable
+                        onDragStart={(e) => {
+                          dragDataRef.current = {
+                            fnKey: def.fnKey,
+                            defName: def.name,
+                            defId: def._id,
+                          };
+                          e.dataTransfer.setData("text/plain", def.fnKey);
+                          e.dataTransfer.effectAllowed = "move";
+                        }}
+                        onDragEnd={() => {
+                          dragDataRef.current = null;
+                        }}
+                        className="cursor-grab rounded-md border border-hairline-strong bg-surface-card p-3 text-sm transition hover:border-primary/50 hover:bg-surface-strong active:cursor-grabbing"
+                      >
+                        <div className="font-medium text-ink">{def.name}</div>
+                        <div className="text-xs text-muted">{def.fnKey}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col">
@@ -936,6 +1322,16 @@ function EditorInner({
               Ejecución
             </button>
           )}
+          <button
+            onClick={() => setChatOpen((v) => !v)}
+            className={`rounded-md border px-3 py-1.5 text-sm transition cursor-pointer ${
+              chatOpen
+                ? "border-primary/50 bg-primary/10 text-primary-active"
+                : "border-hairline-strong bg-surface-card text-body hover:bg-surface-strong"
+            }`}
+          >
+            Asistente
+          </button>
           <div className="ml-auto text-xs text-muted">
             Arrastrá nodos · Conectá salidas → entradas
           </div>
@@ -955,6 +1351,7 @@ function EditorInner({
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
+              onNodeDoubleClick={handleNodeDoubleClick}
               nodeTypes={nodeTypes}
               fitView
               deleteKeyCode="Delete"
@@ -969,6 +1366,11 @@ function EditorInner({
             open={execSidebarOpen}
             onClose={() => setExecSidebarOpen(false)}
             nodes={initialNodes}
+          />
+          <WorkflowChat
+            workflowId={workflowId}
+            open={chatOpen}
+            onClose={() => setChatOpen(false)}
           />
         </div>
       </div>

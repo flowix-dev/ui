@@ -22,7 +22,7 @@ export default function MarketingNavbar() {
             <FlowixLogo />
           </span>
           <span className="text-display text-base font-semibold text-ink">
-            Flowpath
+            Flowix
           </span>
         </Link>
 
