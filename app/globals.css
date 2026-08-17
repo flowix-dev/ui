@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "highlight.js/styles/github-dark.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: var(--font-inter), "Inter", -apple-system, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", "Fira Code", monospace;
@@ -44,9 +46,44 @@
   --spacing-xxl: 3rem;
 }
 
+.dark {
+  --color-primary: #8ab4ff;
+  --color-primary-active: #a9c7ff;
+  --color-link: #8ab4ff;
+  --color-link-secondary: #a9c7ff;
+  --color-ink: #e6ebf5;
+  --color-body: #b8c1d0;
+  --color-body-strong: #e6ebf5;
+  --color-muted: #8a94a8;
+  --color-muted-soft: #5f6b80;
+  --color-hairline: #2b3345;
+  --color-hairline-soft: #232b3b;
+  --color-hairline-strong: #3a4560;
+  --color-canvas: #0f1420;
+  --color-canvas-soft: #151b29;
+  --color-surface-card: #1a2233;
+  --color-surface-strong: #232d42;
+  --color-surface-dark: #0a0e18;
+  --color-surface-dark-elevated: #1c2844;
+  --color-on-primary: #0f1420;
+  --color-on-dark: #ffffff;
+  --color-on-dark-soft: #a9b6cd;
+  --color-gradient-signal-light: #1b2a4a;
+  --color-gradient-signal-mid: #24395f;
+  --color-accent-warning: #e0a14b;
+  --color-accent-preview: #b98ae0;
+  --color-accent-link-bright: #7ea0ff;
+  --color-semantic-error: #e0645c;
+  --color-semantic-success: #2fbf8f;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
+  }
+
+  html.dark {
+    color-scheme: dark;
   }
 
   body {
@@ -68,6 +105,15 @@
       85% 55% at 50% 0%,
       rgba(217, 228, 251, 0.9) 0%,
       rgba(217, 228, 251, 0) 70%
+    );
+    background-color: var(--color-canvas);
+  }
+
+  html.dark .hero-wash {
+    background-image: radial-gradient(
+      85% 55% at 50% 0%,
+      rgba(30, 50, 90, 0.35) 0%,
+      rgba(15, 20, 32, 0) 60%
     );
     background-color: var(--color-canvas);
   }

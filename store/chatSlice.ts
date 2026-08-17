@@ -48,7 +48,12 @@ export const fetchChat = createAsyncThunk(
 
 export const createChat = createAsyncThunk(
   "chat/createChat",
-  async (input: { title?: string; model?: string; assistantId?: string }) => {
+  async (input: {
+    title?: string;
+    model?: string;
+    assistantId?: string;
+    chatbotId?: string;
+  }) => {
     const response = await chatApi.create(input);
     return response.data.chat as Chat;
   },

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { login, clearError } from "@/store/authSlice";
 import { FlowixLogo } from "@/components/marketing/icons";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 
 const inputClassName =
   "h-11 w-full rounded-md border border-hairline-strong bg-surface-card px-4 text-sm text-ink placeholder:text-muted-soft focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10";
@@ -28,6 +29,9 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="fixed right-4 top-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm">
         <Link href="/" className="mb-8 flex items-center justify-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-on-primary">

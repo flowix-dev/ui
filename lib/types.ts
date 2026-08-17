@@ -97,6 +97,7 @@ export interface Chat {
   title: string;
   model: string;
   assistantId?: string | null;
+  chatbotId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -153,6 +154,34 @@ export interface Assistant {
   name: string;
   systemPrompt: string;
   model: string;
+  files: AssistantFile[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatbotTool {
+  fnKey: string;
+  name: string;
+}
+
+export interface Chatbot {
+  _id: string;
+  authorId: string;
+  name: string;
+  avatarUrl?: string;
+  systemPrompt: string;
+  model: string;
+  temperature?: number;
+  welcomeMessage?: string;
+  placeholder?: string;
+  allowFileUpload: boolean;
+  tools: ChatbotTool[];
+  primaryColor?: string;
+  position: "bottom-left" | "bottom-right";
+  autoOpen: boolean;
+  showPoweredBy: boolean;
+  publicToken: string;
+  allowedDomains: string[];
   files: AssistantFile[];
   createdAt: string;
   updatedAt: string;

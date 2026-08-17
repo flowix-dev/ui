@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { FlowixLogo } from "./icons";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 
 const NAV_LINKS = [
   { label: "Workflows", href: "#workflows" },
@@ -39,6 +40,7 @@ export default function MarketingNavbar() {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
+          <ThemeToggle />
           <Link
             href="/login"
             className="text-sm font-medium text-ink transition hover:text-link"
@@ -87,6 +89,7 @@ export default function MarketingNavbar() {
               </a>
             ))}
             <div className="flex flex-col gap-3 border-t border-hairline pt-4">
+              <ThemeToggle />
               <Link href="/login" className="text-sm font-medium text-ink">
                 Iniciar sesión
               </Link>

@@ -90,6 +90,7 @@ export const workflowCrudApi = {
 
 export const nodeDefinitionsApi = {
   list: () => api.get("/node-definitions"),
+  listPublicTools: () => api.get("/node-definitions/public-tools"),
 };
 
 export const modelApi = {
@@ -104,8 +105,12 @@ export const usersApi = {
 
 export const chatApi = {
   list: () => api.get("/chats"),
-  create: (data: { title?: string; model?: string; assistantId?: string }) =>
-    api.post("/chats", data),
+  create: (data: {
+    title?: string;
+    model?: string;
+    assistantId?: string;
+    chatbotId?: string;
+  }) => api.post("/chats", data),
   get: (chatId: string) => api.get(`/chats/${chatId}`),
   update: (chatId: string, data: { title?: string; model?: string }) =>
     api.patch(`/chats/${chatId}`, data),
@@ -142,4 +147,55 @@ export const assistantsApi = {
     api.delete(
       `/assistants/${assistantId}/files/${encodeURIComponent(fileName)}`,
     ),
+};
+
+export const chatbotsApi = {
+  list: () => api.get("/chatbots"),
+  get: (chatbotId: string) => api.get(`/chatbots/${chatbotId}`),
+  create: (data: {
+    name: string;
+    systemPrompt: string;
+    model?: string;
+    allowFileUpload?: boolean;
+    tools?: Array<{ fnKey: string; name: string }>;
+    allowedDomains?: string[];
+    welcomeMessage?: string;
+    placeholder?: string;
+    primaryColor?: string;
+    position?: "bottom-left" | "bottom-right";
+    autoOpen?: boolean;
+    showPoweredBy?: boolean;
+    temperature?: number;
+  }) => api.post("/chatbots", data),
+  update: (
+    chatbotId: string,
+    data: Partial<{
+      name: string;
+      systemPrompt: string;
+      model: string;
+      allowFileUpload: boolean;
+      tools: Array<{ fnKey: string; name: string }>;
+      allowedDomains: string[];
+      welcomeMessage: string;
+      placeholder: string;
+      primaryColor: string;
+      position: "bottom-left" | "bottom-right";
+      autoOpen: boolean;
+      showPoweredBy: boolean;
+      temperature: number;
+      avatarUrl: string;
+    }>,
+  ) => api.patch(`/chatbots/${chatbotId}`, data),
+  delete: (chatbotId: string) => api.delete(`/chatbots/${chatbotId}`),
+  regenerateToken: (chatbotId: string) =>
+    api.post(`/chatbots/${chatbotId}/regenerate-token`),
+  uploadFile: (chatbotId: string, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return api.post(`/chatbots/${chatbotId}/files`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+  deleteFile: (chatbotId: string, fileName: string) =>
+    api.delete(`/chatbots/${chatbotId}/files/${encodeURIComponent(fileName)}`),
 };

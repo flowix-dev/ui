@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import MobileNav from "./MobileNav";
 import PuterUsageBadge from "./PuterUsageBadge";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { logout } from "@/store/authSlice";
 
@@ -48,6 +49,12 @@ export default function Navbar() {
                 Asistentes
               </Link>
               <Link
+                href="/chatbots"
+                className="text-sm font-medium text-body hover:text-ink"
+              >
+                Chatbots
+              </Link>
+              <Link
                 href="/chat"
                 className="text-sm font-medium text-body hover:text-ink"
               >
@@ -63,6 +70,7 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-4">
+            <ThemeToggle />
             <Link
               href="/profile"
               className="hidden text-sm text-muted hover:text-ink sm:inline"

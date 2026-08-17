@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 
 const links = [
   {
@@ -113,21 +114,26 @@ export default function MobileNav() {
     pathname === href || pathname?.startsWith(`${href}/`);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline-strong bg-canvas md:hidden">
-      <div className="mx-auto flex h-14 max-w-lg items-stretch">
-        {links.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-medium transition ${
-              isActive(link.href) ? "text-ink" : "text-muted"
-            }`}
-          >
-            {link.icon}
-            {link.label}
-          </Link>
-        ))}
+    <>
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline-strong bg-canvas md:hidden">
+        <div className="mx-auto flex h-14 max-w-lg items-stretch">
+          {links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-medium transition ${
+                isActive(link.href) ? "text-ink" : "text-muted"
+              }`}
+            >
+              {link.icon}
+              {link.label}
+            </Link>
+          ))}
+        </div>
+      </nav>
+      <div className="fixed bottom-[4.5rem] right-4 z-30 md:hidden">
+        <ThemeToggle />
       </div>
-    </nav>
+    </>
   );
 }
