@@ -10,6 +10,7 @@ const AUTH_NO_REFRESH_ENDPOINTS = [
   "/auth/login",
   "/auth/register",
   "/auth/refresh",
+  "/auth/me",
 ];
 
 api.interceptors.response.use(
