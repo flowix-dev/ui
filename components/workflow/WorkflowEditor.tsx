@@ -502,15 +502,21 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
     });
   }, [allInputPorts, fnKey, modelOptions, assistantOptions]);
   const provider =
-    fnKey === "outlook.send"
+    fnKey === "outlook.send" || fnKey === "outlook.trigger"
       ? "outlook"
-      : fnKey === "gmail.send"
+      : fnKey === "gmail.send" || fnKey === "gmail.trigger"
         ? "gmail"
         : fnKey === "google.sheets" ||
             fnKey === "google.docs" ||
             fnKey === "google.slides"
           ? "google"
-          : null;
+          : fnKey === "slack.send" || fnKey === "slack.trigger"
+            ? "slack"
+            : fnKey === "discord.send" || fnKey === "discord.trigger"
+              ? "discord"
+              : fnKey === "whatsapp.send" || fnKey === "whatsapp.trigger"
+                ? "whatsapp"
+                : null;
 
   const hasHandle = (port: PortDef) =>
     port.input !== "file" && port.input !== "credentials";
@@ -685,6 +691,19 @@ function EditorInner({
   } | null>(null);
   const { running, currentExecution } = useAppSelector((s) => s.execution);
   const dispatch = useAppDispatch();
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const check = () =>
+      setIsDark(document.documentElement.classList.contains("dark"));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   const visibleNodeDefs = useMemo(() => {
     if (parentWorkflowId) {
@@ -1358,8 +1377,15 @@ function EditorInner({
               className="bg-canvas-soft"
             >
               <Background />
-              <Controls />
-              <MiniMap />
+              <div id="rf-controls">
+                <Controls />
+              </div>
+              <div id="rf-minimap">
+                <MiniMap
+                  nodeColor={isDark ? "#8a94a8" : undefined}
+                  maskColor={isDark ? "rgba(138,180,255,0.15)" : undefined}
+                />
+              </div>
             </ReactFlow>
           </div>
           <ExecutionSidebar

@@ -367,3 +367,35 @@
     padding: 0;
   }
 }
+
+html.dark #rf-controls .react-flow__controls {
+  background: #1a2233 !important;
+  border: 1px solid #3a4560 !important;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 0 rgba(16,26,22,0.03), 0 6px 18px rgba(16,26,22,0.06);
+}
+
+html.dark #rf-controls .react-flow__controls button {
+  background: #1a2233 !important;
+  color: #e6ebf5 !important;
+  border-color: #2b3345 !important;
+}
+
+html.dark #rf-controls .react-flow__controls button:hover {
+  background: #232d42 !important;
+}
+
+html.dark #rf-controls .react-flow__controls button svg {
+  fill: #e6ebf5 !important;
+  stroke: #e6ebf5 !important;
+}
+
+html.dark #rf-minimap .react-flow__minimap {
+  background: #1a2233 !important;
+  border: 1px solid #3a4560 !important;
+  border-radius: 0.5rem;
+}
+
+html.dark #rf-minimap .react-flow__minimap > svg {
+  background: #151b29 !important;
+}

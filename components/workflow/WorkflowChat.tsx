@@ -18,13 +18,16 @@ interface WorkflowChatProps {
   workflowId: string;
   open: boolean;
   onClose: () => void;
+  onWorkflowSwitched?: (newWorkflowId: string) => void;
 }
 
 export default function WorkflowChat({
-  workflowId,
+  workflowId: initialWorkflowId,
   open,
   onClose,
+  onWorkflowSwitched,
 }: WorkflowChatProps) {
+  const [workflowId, setWorkflowId] = useState(initialWorkflowId);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -126,13 +129,19 @@ export default function WorkflowChat({
           case "done":
             setSending(false);
             break;
+          case "workflow.switched": {
+            const newId = event.data.workflowId as string;
+            setWorkflowId(newId);
+            onWorkflowSwitched?.(newId);
+            break;
+          }
         }
       },
       () => {
         setSending(false);
       },
     );
-  }, [input, sending, workflowId]);
+  }, [input, sending, workflowId, onWorkflowSwitched]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
