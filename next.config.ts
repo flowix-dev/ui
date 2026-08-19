@@ -2,9 +2,25 @@ import type { NextConfig } from "next";
 
 function getCspConnectSrc(): string {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-  const origin = new URL(apiUrl).origin;
-  const wsProtocol = origin.startsWith("https") ? "wss" : "ws";
-  return `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' ${origin} ${wsProtocol}://${new URL(apiUrl).host}; frame-ancestors 'none';`;
+  let origin: string;
+  let wsHost: string;
+  try {
+    const url = new URL(apiUrl);
+    origin = url.origin;
+    wsHost = url.host;
+  } catch {
+    origin = "";
+    wsHost = "";
+  }
+  const wsProtocol = apiUrl.startsWith("https") ? "wss" : "ws";
+  const parts = ["default-src 'self'", "script-src 'self' 'unsafe-inline' 'unsafe-eval'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob:", "font-src 'self'"];
+  if (origin) {
+    parts.push(`connect-src 'self' ${origin} ${wsProtocol}://${wsHost}`);
+  } else {
+    parts.push("connect-src 'self'");
+  }
+  parts.push("frame-ancestors 'none'");
+  return parts.join("; ");
 }
 
 const securityHeaders = [
