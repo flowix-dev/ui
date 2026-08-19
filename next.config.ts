@@ -43,6 +43,19 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   devIndicators: false,
+  async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${apiUrl}/:path*`,
+      },
+      {
+        source: "/api/auth/:path*",
+        destination: `${apiUrl}/auth/:path*`,
+      },
+    ];
+  },
   async headers() {
     return [
       {
