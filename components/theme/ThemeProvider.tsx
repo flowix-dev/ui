@@ -61,7 +61,9 @@ function getInitialResolved(): "light" | "dark" {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemePreference>(getInitialTheme);
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(getInitialResolved);
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(
+    getInitialResolved,
+  );
   const mountedRef = useRef(false);
 
   useEffect(() => {
@@ -96,9 +98,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
 }
 

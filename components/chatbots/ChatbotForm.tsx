@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Chatbot, ChatModel } from "@/lib/types";
 import { chatbotsApi, nodeDefinitionsApi } from "@/lib/api";
 
@@ -58,6 +58,11 @@ export default function ChatbotForm({
   );
   const [toolsLoaded, setToolsLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [files, setFiles] = useState<
+    Array<{ name: string; type: string; size: number }>
+  >(initial?.files ?? []);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadTools = () => {
     if (toolsLoaded) return;
@@ -77,6 +82,33 @@ export default function ChatbotForm({
       }
       return next;
     });
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !initial) return;
+    setUploading(true);
+    try {
+      const { data } = await chatbotsApi.uploadFile(initial._id, file);
+      setFiles(data.chatbot.files);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Error al subir archivo");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleFileDelete = async (fileName: string) => {
+    if (!initial) return;
+    try {
+      const { data } = await chatbotsApi.deleteFile(initial._id, fileName);
+      setFiles(data.chatbot.files);
+    } catch (error) {
+      alert(
+        error instanceof Error ? error.message : "Error al eliminar archivo",
+      );
+    }
   };
 
   const handleSave = async () => {
@@ -243,6 +275,50 @@ export default function ChatbotForm({
             className="accent-primary"
           />
         </label>
+
+        {initial && (
+          <div>
+            <label className="mb-1 block text-sm font-medium text-ink">
+              Archivos de conocimiento
+            </label>
+            <p className="mb-2 text-xs text-muted">
+              Subí archivos que el chatbot usará como referencia para responder.
+            </p>
+            {files.length > 0 && (
+              <div className="mb-2 space-y-1">
+                {files.map((f) => (
+                  <div
+                    key={f.name}
+                    className="flex items-center justify-between rounded-md border border-hairline bg-canvas-soft px-3 py-1.5 text-sm"
+                  >
+                    <span className="truncate text-body">{f.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleFileDelete(f.name)}
+                      className="ml-2 shrink-0 text-semantic-error hover:underline cursor-pointer"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="btn-secondary text-sm"
+            >
+              {uploading ? "Subiendo…" : "Subir archivo"}
+            </button>
+          </div>
+        )}
 
         <div>
           <label className="mb-1 block text-sm font-medium text-ink">

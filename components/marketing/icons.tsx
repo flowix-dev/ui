@@ -8,7 +8,10 @@ export function FlowixLogo({
   src = "/flowix.png",
   alt = "Flowix",
   ...props
-}: Omit<React.ComponentProps<typeof Image>, "src" | "alt"> & { src?: string; alt?: string }) {
+}: Omit<React.ComponentProps<typeof Image>, "src" | "alt"> & {
+  src?: string;
+  alt?: string;
+}) {
   return (
     <Image
       className={className}

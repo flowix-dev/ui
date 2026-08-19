@@ -13,7 +13,13 @@ function getCspConnectSrc(): string {
     wsHost = "";
   }
   const wsProtocol = apiUrl.startsWith("https") ? "wss" : "ws";
-  const parts = ["default-src 'self'", "script-src 'self' 'unsafe-inline' 'unsafe-eval'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob:", "font-src 'self'"];
+  const parts = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self'",
+  ];
   if (origin) {
     parts.push(`connect-src 'self' ${origin} ${wsProtocol}://${wsHost}`);
   } else {
