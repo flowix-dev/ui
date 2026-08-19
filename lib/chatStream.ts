@@ -1,8 +1,7 @@
 import axios from "axios";
 import { ChatMessage, ToolCall } from "@/lib/types";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const API_BASE_URL = "/api";
 
 export interface StreamHandlers {
   onUserMessage?: (message: ChatMessage) => void;
