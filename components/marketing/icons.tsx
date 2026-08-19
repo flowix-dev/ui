@@ -1,18 +1,21 @@
-import type { ImgHTMLAttributes, SVGProps } from "react";
+import type { SVGProps } from "react";
+import Image from "next/image";
 
 type IconProps = SVGProps<SVGSVGElement>;
 
 export function FlowixLogo({
   className,
+  src = "/flowix.png",
+  alt = "Flowix",
   ...props
-}: ImgHTMLAttributes<HTMLImageElement>) {
+}: Omit<React.ComponentProps<typeof Image>, "src" | "alt"> & { src?: string; alt?: string }) {
   return (
-    <img
+    <Image
       className={className}
       width={24}
       height={24}
-      src="/flowix.png"
-      alt="Flowix"
+      src={src}
+      alt={alt}
       {...props}
     />
   );

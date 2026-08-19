@@ -1,7 +1,5 @@
 import type { NextConfig } from "next";
 
-const isProd = process.env.NODE_ENV === "production";
-
 function getCspConnectSrc(): string {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
   const origin = new URL(apiUrl).origin;
