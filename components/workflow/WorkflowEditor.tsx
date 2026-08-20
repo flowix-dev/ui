@@ -1048,12 +1048,21 @@ function EditorInner({
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
-      const draggedId = event.dataTransfer.getData("text/plain");
+      let defId: string | null = null;
+      try {
+        const json = event.dataTransfer.getData("application/json");
+        if (json) defId = (JSON.parse(json) as { defId: string }).defId;
+      } catch {}
+      if (!defId) defId = event.dataTransfer.getData("text/plain") || null;
       const dragData = dragDataRef.current;
-      const defId = draggedId || dragData?.defId;
+      if (!defId) defId = dragData?.defId ?? null;
       if (!defId) return;
 
-      const maxId = nodes.reduce((max, n) => Math.max(max, parseInt(n.id)), 0);
+      const maxId = Math.max(
+        0,
+        ...nodes.map((n) => parseInt(n.id) || 0),
+        ...initialNodes.map((n) => n.id || 0),
+      );
       const newId = maxId + 1;
 
       const position = reactFlowInstance.screenToFlowPosition({
@@ -1071,7 +1080,6 @@ function EditorInner({
             defaultInputs[input.key] = input.defaultValue;
         }
       }
-
       setNodeInputs((prev) => ({ ...prev, [String(newId)]: defaultInputs }));
 
       setNodes((nds) => [
@@ -1273,7 +1281,7 @@ function EditorInner({
             }
             const open = !closedCategories.has(category);
             return (
-              <div key={category} className="mb-2">
+              <div key={`${category}-${nodeSearch}`} className="mb-2">
                 <button
                   onClick={() =>
                     setClosedCategories((prev) => {
@@ -1304,21 +1312,33 @@ function EditorInner({
                   <div className="mt-1 space-y-1.5">
                     {defs.map((def) => (
                       <div
-                        key={def._id}
+                        key={`${def._id}-${nodeSearch}`}
                         draggable
+                        data-def-id={def._id}
+                        data-fn-key={def.fnKey}
+                        data-def-name={def.name}
+                        title={`${def.fnKey} ${def._id}`}
                         onDragStart={(e) => {
+                          const el = e.currentTarget as HTMLElement;
+                          const id = el.getAttribute("data-def-id") ?? def._id;
+                          const fnKey =
+                            el.getAttribute("data-fn-key") ?? def.fnKey;
+                          const name =
+                            el.getAttribute("data-def-name") ?? def.name;
+                          const payload = JSON.stringify({ defId: id, fnKey });
                           dragDataRef.current = {
-                            fnKey: def.fnKey,
-                            defName: def.name,
-                            defId: def._id,
+                            fnKey,
+                            defName: name,
+                            defId: id,
                           };
-                          e.dataTransfer.setData("text/plain", def._id);
+                          e.dataTransfer.setData("text/plain", id);
+                          e.dataTransfer.setData("application/json", payload);
                           e.dataTransfer.effectAllowed = "move";
                         }}
                         onDragEnd={() => {
                           setTimeout(() => {
                             dragDataRef.current = null;
-                          }, 0);
+                          }, 100);
                         }}
                         className="cursor-grab rounded-md border border-hairline-strong bg-surface-card p-3 text-sm transition hover:border-primary/50 hover:bg-surface-strong active:cursor-grabbing"
                       >
