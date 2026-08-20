@@ -1061,7 +1061,9 @@ function EditorInner({
         y: event.clientY,
       });
 
-      const def = nodeDefMap.get(defId) || (dragData ? nodeDefMap.get(dragData.defId) : undefined);
+      const def =
+        nodeDefMap.get(defId) ||
+        (dragData ? nodeDefMap.get(dragData.defId) : undefined);
       const defaultInputs: Record<string, unknown> = {};
       if (def) {
         for (const input of def.inputs) {
@@ -1314,7 +1316,9 @@ function EditorInner({
                           e.dataTransfer.effectAllowed = "move";
                         }}
                         onDragEnd={() => {
-                          setTimeout(() => { dragDataRef.current = null; }, 0);
+                          setTimeout(() => {
+                            dragDataRef.current = null;
+                          }, 0);
                         }}
                         className="cursor-grab rounded-md border border-hairline-strong bg-surface-card p-3 text-sm transition hover:border-primary/50 hover:bg-surface-strong active:cursor-grabbing"
                       >

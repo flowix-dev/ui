@@ -19,9 +19,7 @@ export default function MarketingNavbar() {
     <header className="sticky top-0 z-40 border-b border-hairline bg-canvas">
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary dark:bg-[#010a35] text-on-primary">
-            <FlowixLogo />
-          </span>
+          <FlowixLogo />
           <span className="text-display text-base font-semibold text-ink">
             Flowix
           </span>

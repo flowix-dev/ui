@@ -32,9 +32,7 @@ export default function Footer() {
         <div className="grid grid-cols-2 gap-10 md:grid-cols-5">
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-on-primary">
-                <FlowixLogo />
-              </span>
+              <FlowixLogo />
               <span className="text-display text-base font-semibold text-ink">
                 Flowix
               </span>

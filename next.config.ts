@@ -13,9 +13,12 @@ function getCspConnectSrc(): string {
     wsHost = "";
   }
   const wsProtocol = apiUrl.startsWith("https") ? "wss" : "ws";
+  const scriptSrc = origin
+    ? `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${origin}`
+    : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
   const parts = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    scriptSrc,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self'",
@@ -64,15 +67,12 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   devIndicators: false,
   async rewrites() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const apiUrl =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
     return [
       {
         source: "/api/:path*",
         destination: `${apiUrl}/:path*`,
-      },
-      {
-        source: "/api/auth/:path*",
-        destination: `${apiUrl}/auth/:path*`,
       },
     ];
   },
