@@ -189,7 +189,15 @@ function parseSwitchCases(raw: unknown): unknown[] {
   return parseCaseList(trimmed);
 }
 
-function CredentialsButton({ provider }: { provider: string }) {
+function CredentialsButton({
+  provider,
+  value,
+  onChange,
+}: {
+  provider: string;
+  value?: unknown;
+  onChange?: (v: string) => void;
+}) {
   const [connected, setConnected] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -200,13 +208,18 @@ function CredentialsButton({ provider }: { provider: string }) {
       .then(({ data }) => {
         setConnected(!!data.connected);
         setEmail(data.email ?? null);
+        if (data.connected && !value && onChange) onChange(provider);
       })
       .catch(() => setConnected(false));
-  }, [provider]);
+  }, [provider, value, onChange]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (connected && !value && onChange) onChange(provider);
+  }, [connected, value, onChange, provider]);
 
   const handleClick = async () => {
     setBusy(true);
@@ -225,6 +238,7 @@ function CredentialsButton({ provider }: { provider: string }) {
             setConnected(true);
             setEmail(status.email ?? null);
             setBusy(false);
+            if (onChange) onChange(provider);
           }
         } catch {
           /* keep polling */
@@ -575,7 +589,11 @@ function WorkflowNodeComponent({ data, selected }: NodeProps) {
                     <span className="text-[10px] text-muted">{port.key}</span>
                     <TypeBadge type={port.type} />
                   </div>
-                  <CredentialsButton provider={provider} />
+                  <CredentialsButton
+                    provider={provider}
+                    value={inputValues[port.key]}
+                    onChange={(v) => onInputChange(port.key, v)}
+                  />
                 </div>
               );
             }
