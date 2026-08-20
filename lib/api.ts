@@ -71,6 +71,8 @@ export const workflowApi = {
     });
   },
   getExecution: (executionId: string) => api.get(`/executions/${executionId}`),
+  cancelExecution: (executionId: string) =>
+    api.post(`/workflows/executions/${executionId}/cancel`),
   getWorkflowExecutions: (workflowId: string, page = 1, limit = 20) =>
     api.get(`/workflows/${workflowId}/executions?page=${page}&limit=${limit}`),
   getUserExecutions: (page = 1, limit = 20) =>

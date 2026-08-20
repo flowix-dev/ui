@@ -25,10 +25,15 @@ import { WorkflowNode, WorkflowEdge } from "@/lib/types";
 import api, {
   nodeDefinitionsApi,
   workflowCrudApi,
+  workflowApi,
   assistantsApi,
 } from "@/lib/api";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { fetchExecution } from "@/store/executionSlice";
+import {
+  fetchExecution,
+  setExecutionRunning,
+  updateExecutionStatus,
+} from "@/store/executionSlice";
 import ExecutionSidebar from "./ExecutionSidebar";
 import WorkflowChat from "./WorkflowChat";
 
@@ -692,6 +697,20 @@ function EditorInner({
   const { running, currentExecution } = useAppSelector((s) => s.execution);
   const dispatch = useAppDispatch();
   const [isDark, setIsDark] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+
+  const handleCancelExecution = async () => {
+    if (!currentExecution?._id || cancelling) return;
+    setCancelling(true);
+    try {
+      await workflowApi.cancelExecution(currentExecution._id);
+      dispatch(setExecutionRunning(false));
+      dispatch(updateExecutionStatus({ status: "cancelled" }));
+    } catch {
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   useEffect(() => {
     const check = () =>
@@ -1305,6 +1324,10 @@ function EditorInner({
           </button>
           <button
             onClick={() => {
+              if (running) {
+                handleCancelExecution();
+                return;
+              }
               const { savedNodes, savedEdges } = buildSavedState();
               if (hasFileUpload) {
                 const uploadNode = nodes.find(
@@ -1325,9 +1348,10 @@ function EditorInner({
               }
               setExecSidebarOpen(true);
             }}
+            disabled={cancelling}
             className="btn-primary"
           >
-            {running ? "Corriendo…" : "Correr"}
+            {running ? "Detener" : "Correr"}
           </button>
           {running && (
             <button
