@@ -1048,11 +1048,10 @@ function EditorInner({
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
+      const draggedId = event.dataTransfer.getData("text/plain");
       const dragData = dragDataRef.current;
-      if (!dragData) return;
-
-      const draggedKey = event.dataTransfer.getData("text/plain");
-      if (draggedKey !== dragData.fnKey) return;
+      const defId = draggedId || dragData?.defId;
+      if (!defId) return;
 
       const maxId = nodes.reduce((max, n) => Math.max(max, parseInt(n.id)), 0);
       const newId = maxId + 1;
@@ -1062,7 +1061,7 @@ function EditorInner({
         y: event.clientY,
       });
 
-      const def = nodeDefMap.get(dragData.defId);
+      const def = nodeDefMap.get(defId) || (dragData ? nodeDefMap.get(dragData.defId) : undefined);
       const defaultInputs: Record<string, unknown> = {};
       if (def) {
         for (const input of def.inputs) {
@@ -1080,9 +1079,9 @@ function EditorInner({
           type: "workflow",
           position: { x: position.x, y: position.y },
           data: {
-            label: dragData.defName,
-            fnKey: dragData.fnKey,
-            nodeDefinitionId: dragData.defId,
+            label: def?.name ?? dragData?.defName ?? "Node",
+            fnKey: def?.fnKey ?? dragData?.fnKey ?? "",
+            nodeDefinitionId: def?._id ?? defId,
             nodeId: newId,
             nodeDef: def,
             inputValues: defaultInputs,
@@ -1194,7 +1193,7 @@ function EditorInner({
   }, [onRegisterSave, saveCurrent]);
 
   const handleNodeDoubleClick = useCallback(
-    (event: React.MouseEvent, node: Node) => {
+    (_event: React.MouseEvent, node: Node) => {
       const def = (node.data?.nodeDef as NodeDef | undefined) ?? null;
       if (def?.fnKey !== "run.workflow") {
         return;
@@ -1311,11 +1310,11 @@ function EditorInner({
                             defName: def.name,
                             defId: def._id,
                           };
-                          e.dataTransfer.setData("text/plain", def.fnKey);
+                          e.dataTransfer.setData("text/plain", def._id);
                           e.dataTransfer.effectAllowed = "move";
                         }}
                         onDragEnd={() => {
-                          dragDataRef.current = null;
+                          setTimeout(() => { dragDataRef.current = null; }, 0);
                         }}
                         className="cursor-grab rounded-md border border-hairline-strong bg-surface-card p-3 text-sm transition hover:border-primary/50 hover:bg-surface-strong active:cursor-grabbing"
                       >
