@@ -104,7 +104,15 @@ const chatSlice = createSlice({
       state.error = null;
     },
     streamUserMessage(state, action: PayloadAction<ChatMessage>) {
-      state.messages.push(action.payload);
+      const message = action.payload;
+      const tempIndex = state.messages.findIndex((m) =>
+        m._id.startsWith("temp-"),
+      );
+      if (tempIndex !== -1 && message.role === "user") {
+        state.messages[tempIndex] = message;
+      } else {
+        state.messages.push(message);
+      }
     },
     streamDelta(state, action: PayloadAction<string>) {
       state.streamingText += action.payload;

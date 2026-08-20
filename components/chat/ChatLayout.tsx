@@ -21,6 +21,7 @@ import {
   streamUserMessage,
 } from "@/store/chatSlice";
 import { streamChatMessage } from "@/lib/chatStream";
+import { ChatMessage } from "@/lib/types";
 import ChatSidebar from "./ChatSidebar";
 import ChatWindow from "./ChatWindow";
 
@@ -92,6 +93,20 @@ export default function ChatLayout() {
       return;
     }
     dispatch(clearError());
+
+    const tempUserMessage: ChatMessage = {
+      _id: `temp-${Date.now()}`,
+      chatId: currentChatId,
+      authorId: "",
+      role: "user",
+      content,
+      attachments: [],
+      toolCalls: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    dispatch(streamUserMessage(tempUserMessage));
+
     dispatch(beginStream());
     try {
       await streamChatMessage(currentChatId, content, fileIds, {
