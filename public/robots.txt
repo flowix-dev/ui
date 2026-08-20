@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://flowix.lat/sitemap.xml
+Sitemap: https://basilioalvarez.com/sitemap.xml

@@ -17,27 +17,10 @@ const COLUMNS: FooterColumn[] = [
     ],
   },
   {
-    title: "Recursos",
-    links: [
-      { label: "Documentación", href: "#" },
-      { label: "Referencia de API", href: "#" },
-      { label: "Guía de inicio", href: "#" },
-      { label: "Estado", href: "#" },
-    ],
-  },
-  {
-    title: "Compañía",
-    links: [
-      { label: "Acerca de", href: "#" },
-      { label: "Blog", href: "#" },
-      { label: "Contacto", href: "#" },
-    ],
-  },
-  {
     title: "Legal",
     links: [
-      { label: "Privacidad", href: "#" },
-      { label: "Términos", href: "#" },
+      { label: "Privacidad", href: "/privacy" },
+      { label: "Términos", href: "/terms" },
     ],
   },
 ];

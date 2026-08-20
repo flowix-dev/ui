@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://flowix.lat/</loc>
+    <loc>https://basilioalvarez.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://flowix.lat/login</loc>
+    <loc>https://basilioalvarez.com/login</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://flowix.lat/register</loc>
+    <loc>https://basilioalvarez.com/register</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
