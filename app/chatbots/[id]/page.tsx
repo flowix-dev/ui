@@ -11,6 +11,7 @@ import { Chatbot } from "@/lib/types";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
   beginStream,
+  clearCurrentChat,
   clearError,
   createChat,
   deleteChat,
@@ -50,6 +51,10 @@ export default function ChatbotChatPage() {
     streamingToolCalls,
     error,
   } = useAppSelector((s) => s.chat);
+
+  useEffect(() => {
+    dispatch(clearCurrentChat());
+  }, [dispatch]);
 
   useEffect(() => {
     chatbotsApi
